@@ -1,0 +1,34 @@
+.qodo
+venv/
+__pycache__/
+*.pyc
+*.env
+config/settings.py
+build/
+.android/
+.ios/
+flutter/.pub-cache/
+pubspec.lock
+docker-compose.override.yml
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Logs et caches
+logs/
+*.log
+npm-debug.log*
+
+# Clés et variables d'environnement sensibles
+.env
+.env.local
+.env.development
+.env.production
+
+# Dépendances Python
+Pipfile
+Pipfile.lock
+
+# Node.js (si utilisé)
+node_modules/
+package-lock.json
