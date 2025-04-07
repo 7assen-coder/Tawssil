@@ -1,5 +1,5 @@
 import 'package:postgres/postgres.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:developer' as developer;
 
 class DatabaseService {
   late PostgreSQLConnection _connection;
@@ -24,15 +24,11 @@ class DatabaseService {
   Future<bool> testConnection() async {
     try {
       await connect();
-      if (kDebugMode) {
-        debugPrint('✅ تم الاتصال بقاعدة البيانات بنجاح');
-      }
+      developer.log('✅ تم الاتصال بقاعدة البيانات بنجاح');
       await disconnect();
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('❌ فشل الاتصال بقاعدة البيانات: $e');
-      }
+      developer.log('❌ فشل الاتصال بقاعدة البيانات: $e');
       return false;
     }
   }
