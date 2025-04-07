@@ -19,6 +19,19 @@ class DatabaseService {
     await _connection.close();
   }
 
+  // دالة اختبار الاتصال
+  Future<bool> testConnection() async {
+    try {
+      await connect();
+      print('✅ تم الاتصال بقاعدة البيانات بنجاح');
+      await disconnect();
+      return true;
+    } catch (e) {
+      print('❌ فشل الاتصال بقاعدة البيانات: $e');
+      return false;
+    }
+  }
+
   // مثال على دالة للاستعلام
   Future<List<Map<String, dynamic>>> query(String sql) async {
     final results = await _connection.mappedResultsQuery(sql);
