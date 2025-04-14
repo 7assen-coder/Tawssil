@@ -1,0 +1,10 @@
+{
+  "login": "Connexion",
+  "welcome": "Bienvenue!",
+  "description": "Votre commande, où que vous soyez. Votre confort est notre priorité, et notre rapidité est notre atout",
+  "phone_email": "Numéro de téléphone ou e-mail",
+  "password": "Mot de passe",
+  "forgot_password": "Mot de passe oublié?",
+  "login_button": "Se connecter",
+  "new_account": "Créer un nouveau compte"
+} 
