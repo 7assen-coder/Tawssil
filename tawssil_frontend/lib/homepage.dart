@@ -21,7 +21,7 @@ class _HomePageState extends State<HomePage>
     bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF2AAF7F),
+      backgroundColor: Colors.teal[400],
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 500),
@@ -33,14 +33,13 @@ class _HomePageState extends State<HomePage>
 
   Widget _buildAnimation() {
     return Container(
-      color: const Color(0xFF2A9D8F),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // شعار التطبيق مع تأثير ظهور تدريجي
             TweenAnimationBuilder<double>(
-              duration: const Duration(seconds: 2),
+              duration: const Duration(seconds: 3),
               tween: Tween<double>(begin: 0.0, end: 1.0),
               builder: (context, value, child) {
                 return Opacity(
@@ -84,7 +83,7 @@ class _HomePageState extends State<HomePage>
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
-              color: const Color(0xFF2A9D8F),
+              color: Colors.teal[400],
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -152,9 +151,8 @@ class _HomePageState extends State<HomePage>
               width: double.infinity,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                borderRadius: BorderRadius.vertical(
+                  top: Radius.circular(45.0),
                 ),
               ),
               child: Column(
