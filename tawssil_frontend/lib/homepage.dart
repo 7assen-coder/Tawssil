@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'newaccount.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -55,18 +57,18 @@ class _HomePageState extends State<HomePage>
                 );
               },
             ),
-            const SizedBox(height: 50),
+            const SizedBox(height: 30),
             // رسوم متحركة للتحميل
             SizedBox(
-              width: 200,
-              height: 200,
+              width: 300,
+              height: 300,
               child: Lottie.network(
                 'https://lottie.host/704d7228-b25f-4aa5-960d-bd8b66a6257c/vaWOhNBobl.json',
                 fit: BoxFit.contain,
                 repeat: true,
                 animate: true,
                 frameRate:
-                    const FrameRate(60), // معدل إطارات أعلى للحركة الأكثر سلاسة
+                    const FrameRate(120), // معدل إطارات أعلى للحركة الأكثر سلاسة
               ),
             ),
           ],
@@ -139,8 +141,8 @@ class _HomePageState extends State<HomePage>
                   Center(
                     child: Image.asset(
                       'assets/images/Groupes@4x.png',
-                      width: 200,
-                      height: 200,
+                      width: 120,
+                      height: 120,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -176,7 +178,7 @@ class _HomePageState extends State<HomePage>
                               : Alignment.centerLeft,
                           child: Column(
                             crossAxisAlignment: isRTL
-                                ? CrossAxisAlignment.end
+                                ? CrossAxisAlignment.start
                                 : CrossAxisAlignment.start,
                             children: [
                               Text(
@@ -284,7 +286,12 @@ class _HomePageState extends State<HomePage>
                         const SizedBox(height: 20),
                         Center(
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => const NewAccount()),
+                              );
+                            },
                             child: Text(
                               'new_account'.tr(),
                               style: const TextStyle(
@@ -299,8 +306,8 @@ class _HomePageState extends State<HomePage>
                         Center(
                           child: Image.asset(
                             'assets/images/Rectangle@4x.png',
-                            width: 80,
-                            height: 80,
+                            width: 40,
+                            height: 40,
                           ),
                         ),
                       ],

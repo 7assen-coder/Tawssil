@@ -6,5 +6,25 @@
   "password": "Mot de passe",
   "forgot_password": "Mot de passe oublié?",
   "login_button": "Se connecter",
-  "new_account": "Créer un nouveau compte"
-} 
+  "new_account": "CRÉER UN COMPTE",
+  "start_journey": "Commencez votre voyage avec Twsil en une seule étape",
+  "closer_with_twsil": "Avec Twsil. Tout est plus proche de vous",
+  "start_message": "Commencez votre inscription en quelques étapes faciles",
+  
+  "step_1": "ÉTAPE 1",
+  "personal_info": "Informations personnelles",
+  "full_name": "Nom complet",
+  "email": "E-mail",
+  "phone": "Numéro de téléphone",
+  "dob": "Date de naissance",
+  
+  "step_2": "ÉTAPE 2",
+  "verify_code": "Vérifiez votre code",
+
+  "step_3": "ÉTAPE 3",
+  "create_password": "Créer un mot de passe",
+  
+  "continue": "CONTINUER",
+  "enter_code": "Entrez le code",
+  "enter_password": "Entrez votre mot de passe"
+}
