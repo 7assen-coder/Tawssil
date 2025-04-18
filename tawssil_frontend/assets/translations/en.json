@@ -29,5 +29,21 @@
   "step_3": "STEP 3",
   "create_password": "CREATE PASSWORD",
   "enter_password": "Enter password",
-  "continue": "CONTINUE"
+  "continue": "CONTINUE",
+
+  "success_completed": "SUCCESSFULLY COMPLETED",
+  "verification_sent": "Verification code has been sent to :",
+  "expiration": "Expires in :",
+  "resend_code": "Resend code",
+  "not_received": "Code not received!",
+  "send_email": "Send code to e-mail",
+  "contact_support": "Contact Technical Support",
+  "confirm_password": "Confirm Password",
+  "completed_progress": "1 of 2 completed",
+  "choose_profile_picture": "Choose Profile Picture",
+  "take_photo_now": "Take Photo Now",
+  "choose_image": "Choose Image",
+  "choose_from_gallery": "Choose from Gallery",
+  "choose_from_files": "Choose from Files",
+  "back": "Back"
 }

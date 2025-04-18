@@ -26,5 +26,22 @@
   
   "continue": "CONTINUER",
   "enter_code": "Entrez le code",
-  "enter_password": "Entrez votre mot de passe"
+  "enter_password": "Entrez votre mot de passe",
+
+  "create_account": "CRÉER UN COMPTE",
+  "success_completed": "TERMINÉ AVEC SUCCÈS",
+  "verification_sent": "Le code de vérification a été envoyé à :",
+  "expiration": "Expiration dans :",
+  "resend_code": "Renvoyer le code",
+  "not_received": "Le code n'a pas été reçu !",
+  "send_email": "Envoyer le code à l'e-mail",
+  "contact_support": "Contactez le support technique",
+  "confirm_password": "Confirmer le mot de passe",
+  "completed_progress": "1 sur 2 terminé",
+  "choose_profile_picture": "Choisir une photo de profil",
+  "take_photo_now": "Prendre une photo maintenant",
+  "choose_image": "Choisir une image",
+  "choose_from_gallery": "Choisir depuis la galerie",
+  "choose_from_files": "Choisir depuis les fichiers",
+  "back": "Retour"
 }

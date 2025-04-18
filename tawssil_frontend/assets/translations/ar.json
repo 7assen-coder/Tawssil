@@ -29,5 +29,21 @@
   "step_2": "الخطوة 2",
   "verify_code": "رمز التحقق",
   "step_3": "الخطوة 3",
-  "create_password": "إنشاء كلمة المرور"
+  "create_password": "إنشاء كلمة المرور",
+
+  "success_completed": "تم بنجاح",
+  "verification_sent": "تم إرسال رمز التحقق على الرقم التالي :",
+  "expiration": "تنتهي مدة الصلاحية :",
+  "resend_code": "إعادة إرسال الرمز",
+  "not_received": "لم يتم الاستلام بعد؟",
+  "send_email": "إرسال الرمز على البريد الإلكتروني",
+  "contact_support": "تواصل مع الدعم الفني",
+  "confirm_password": "تأكيد كلمة المرور",
+  "completed_progress": "تم إكمال 1 من 2",
+  "choose_profile_picture": "اختيار صورة الحساب",
+  "take_photo_now": "التقاط صورة الآن",
+  "choose_image": "اختيار صورة",
+  "choose_from_gallery": "اختيار من المعرض",
+  "choose_from_files": "اختيار من الملفات",
+  "back": "رجوع"
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'codeverification.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class NewAccount extends StatelessWidget {
@@ -9,7 +10,8 @@ class NewAccount extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF2F9C95),
       body: SafeArea(
-        child: SingleChildScrollView( // Added SingleChildScrollView
+        child: SingleChildScrollView(
+          // Added SingleChildScrollView
           child: Column(
             children: [
               // Language Selector
@@ -17,8 +19,8 @@ class NewAccount extends StatelessWidget {
                 alignment: Alignment.topRight,
                 child: PopupMenuButton<String>(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -85,15 +87,13 @@ class NewAccount extends StatelessWidget {
                         children: [
                           // Title
                           Center(
-                            child: 
-                            Text(
-                              'create_account'.tr(),
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            )
-                          ),
+                              child: Text(
+                            'create_account'.tr(),
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )),
                           const SizedBox(height: 8),
                           // Subtitles
                           Text(
@@ -117,13 +117,17 @@ class NewAccount extends StatelessWidget {
                             children: [
                               // Steps Line
                               Positioned(
-                                right: context.locale.languageCode == 'ar' ? 20 : null,
-                                left: context.locale.languageCode != 'ar' ? 20 : null,
+                                right: context.locale.languageCode == 'ar'
+                                    ? 20
+                                    : null,
+                                left: context.locale.languageCode != 'ar'
+                                    ? 20
+                                    : null,
                                 top: 40,
                                 bottom: 100,
                                 child: Container(
-                                width: 2,
-                                color: const Color(0xFF2F9C95),
+                                  width: 2,
+                                  color: const Color(0xFF2F9C95),
                                 ),
                               ),
                               // Content
@@ -132,7 +136,8 @@ class NewAccount extends StatelessWidget {
                                 children: [
                                   // Step 1 with inputs
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Container(
                                         width: 40,
@@ -148,7 +153,8 @@ class NewAccount extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 12),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'step1'.tr(),
@@ -167,49 +173,103 @@ class NewAccount extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 10),
-                          
+
                                   // Input Fields
                                   Padding(
                                     padding: EdgeInsets.only(
-                                    left: context.locale.languageCode == 'ar' ? 0 : 52,
-                                    right: context.locale.languageCode == 'ar' ? 52 : 0,
+                                      left: context.locale.languageCode == 'ar'
+                                          ? 0
+                                          : 52,
+                                      right: context.locale.languageCode == 'ar'
+                                          ? 52
+                                          : 0,
                                     ),
                                     child: Column(
-                                    crossAxisAlignment: context.locale.languageCode == 'ar'
-                                      ? CrossAxisAlignment.end
-                                      : CrossAxisAlignment.start,
-                                    children: [
-                                      _buildInput(Icons.person_outline, 'full_name'.tr()),
-                                      _buildInput(Icons.email_outlined, 'email'.tr()),
-                                      _buildInput(Icons.phone_outlined, 'phone_number'.tr()),
-                                      _buildInput(Icons.calendar_today_outlined, 'birth_date'.tr()),
-                                      const SizedBox(height: 10),
-                                      // Continue Button
-                                      SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF2F9C95),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                      crossAxisAlignment:
+                                          context.locale.languageCode == 'ar'
+                                              ? CrossAxisAlignment.end
+                                              : CrossAxisAlignment.start,
+                                      children: [
+                                        _buildInput(Icons.person_outline,
+                                            'full_name'.tr()),
+                                        _buildInput(
+                                            Icons.email_outlined, 'email'.tr()),
+                                        _buildInput(Icons.phone_outlined,
+                                            'phone_number'.tr()),
+                                        _buildInput(
+                                            Icons.calendar_today_outlined,
+                                            'birth_date'.tr()),
+                                        const SizedBox(height: 10),
+                                        // Continue Button
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: ElevatedButton(
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF2F9C95),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      vertical: 12),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                            ),
+                                            onPressed: () {
+                                              Navigator.push(
+                                                context,
+                                                PageRouteBuilder(
+                                                  pageBuilder: (context,
+                                                          animation,
+                                                          secondaryAnimation) =>
+                                                      const CodeVerification(),
+                                                  transitionsBuilder: (context,
+                                                      animation,
+                                                      secondaryAnimation,
+                                                      child) {
+                                                    const begin =
+                                                        Offset(0.0, -1.0);
+                                                    const end = Offset.zero;
+                                                    const curve =
+                                                        Curves.easeInOut;
+
+                                                    var tween = Tween(
+                                                            begin: begin,
+                                                            end: end)
+                                                        .chain(CurveTween(
+                                                            curve: curve));
+                                                    var offsetAnimation =
+                                                        animation.drive(tween);
+
+                                                    return FadeTransition(
+                                                      opacity: animation,
+                                                      child: SlideTransition(
+                                                        position:
+                                                            offsetAnimation,
+                                                        child: child,
+                                                      ),
+                                                    );
+                                                  },
+                                                  transitionDuration:
+                                                      const Duration(
+                                                          milliseconds: 400),
+                                                ),
+                                              );
+                                            },
+                                            child: Text(
+                                              'continue'.tr(),
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                        ),
-                                        onPressed: () {},
-                                        child: Text(
-                                        'continue'.tr(),
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        ),
-                                      ),
-                                      ),
-                                    ],
+                                      ],
                                     ),
                                   ),
                                   const SizedBox(height: 10),
-                          
+
                                   // Step 2
                                   Row(
                                     children: [
@@ -227,7 +287,8 @@ class NewAccount extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 12),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'step2'.tr(),
@@ -246,7 +307,7 @@ class NewAccount extends StatelessWidget {
                                     ],
                                   ),
                                   const SizedBox(height: 10),
-                          
+
                                   // Step 3
                                   Row(
                                     children: [
@@ -264,7 +325,8 @@ class NewAccount extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 12),
                                       Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             'step3'.tr(),
