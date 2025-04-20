@@ -1,5 +1,5 @@
 # Utiliser une image de base Python
-FROM python:3.10
+FROM python:3.10-slim
 
 # Définir le répertoire de travail dans le conteneur
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY . .
 
 # Installer les dépendances
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Exécuter le serveur Django
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "tawssil_backend.wsgi:application"]

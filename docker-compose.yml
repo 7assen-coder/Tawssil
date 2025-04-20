@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:13
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=tawssil_user
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=tawssil_db
+    restart: always
+
+  web:
+    build: .
+    command: gunicorn tawssil_backend.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - static_volume:/app/tawssil_backend/static
+      - media_volume:/app/tawssil_backend/media
+    expose:
+      - 8000
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    restart: always
+
+  nginx:
+    image: nginx:1.21
+    ports:
+      - 80:80
+    volumes:
+      - static_volume:/app/static
+      - media_volume:/app/media
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - web
+    restart: always
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
