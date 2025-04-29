@@ -20,6 +20,7 @@ class Utilisateur(models.Model):
     photo_cart = models.ImageField(upload_to='utilisateurs/photos', null=True, blank=True)
     date_joined = models.DateTimeField(default=timezone.now)
     last_login = models.DateTimeField(null=True, blank=True)
+    last_modified = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -39,10 +40,18 @@ class Livreur(models.Model):
         ('Camion', 'Camion'),
     ]
     
-    id_livreur = models.OneToOneField(Utilisateur, primary_key=True, on_delete=models.CASCADE)
+    id_livreur = models.OneToOneField(Utilisateur, primary_key=True, on_delete=models.CASCADE, related_name='profil_livreur')
     type_transport = models.CharField(max_length=10, choices=TYPE_TRANSPORT_CHOICES, null=True, blank=True)
+    note_moyenne = models.FloatField(null=True, blank=True, default=0)
     disponibilite = models.BooleanField(default=False)
     zone_couverture = models.CharField(max_length=255, null=True, blank=True)
+    photo_voiture = models.ImageField(upload_to='livreurs/photos/voitures', null=True, blank=True)
+    matricule_voiture = models.CharField(max_length=50, null=True, blank=True)
+    photo_permis = models.ImageField(upload_to='livreurs/photos/permis', null=True, blank=True)
+    photo_carte_grise = models.ImageField(upload_to='livreurs/photos/papiers/carte_grise', null=True, blank=True)
+    photo_assurance = models.ImageField(upload_to='livreurs/photos/papiers/assurance', null=True, blank=True)
+    photo_vignette = models.ImageField(upload_to='livreurs/photos/papiers/vignette', null=True, blank=True)
+    photo_carte_municipale = models.ImageField(upload_to='livreurs/photos/papiers/municipale', null=True, blank=True)
     
     def __str__(self):
         return f"Livreur: {self.id_livreur.prenom} {self.id_livreur.nom}"
