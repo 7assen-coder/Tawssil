@@ -11,17 +11,17 @@
   "closer_with_twsil": "Avec Twsil. Tout est plus proche de vous",
   "start_message": "Commencez votre inscription en quelques étapes faciles",
   
-  "step_1": "ÉTAPE 1",
+  "step1": "ÉTAPE 1",
   "personal_info": "Informations personnelles",
   "full_name": "Nom complet",
   "email": "E-mail",
   "phone": "Numéro de téléphone",
   "dob": "Date de naissance",
   
-  "step_2": "ÉTAPE 2",
+  "step2": "ÉTAPE 2",
   "verify_code": "Vérifiez votre code",
 
-  "step_3": "ÉTAPE 3",
+  "step3": "ÉTAPE 3",
   "create_password": "Créer un mot de passe",
   
   "continue": "CONTINUER",
@@ -43,5 +43,13 @@
   "choose_image": "Choisir une image",
   "choose_from_gallery": "Choisir depuis la galerie",
   "choose_from_files": "Choisir depuis les fichiers",
-  "back": "Retour"
+  "back": "Retour",
+  "Password_reset" : "Réinitialisation du mot de passe",
+  "Processing_method" : "Choisissez la méthode de traitement",
+  "To_Num": "Le code sera envoyé au numéro",
+  "To_Email" : "Le code sera envoyé à l'e-mail",
+  "create_Npassword" : "Créer un nouveau mot de passe",
+  "Send_Code" : "Envoyer le code",
+  "change_method" : "changer la méthode" 
+
 }

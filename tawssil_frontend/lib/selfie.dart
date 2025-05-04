@@ -16,83 +16,77 @@ class _SelfieScreenState extends State<SelfieScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF2F9C95),
       body: SafeArea(
-        child: Column(
-          children: [
-            // اختيار اللغة
-            Padding(
-              padding: const EdgeInsets.only(top: 16, right: 16),
-              child: Align(
-                alignment: Alignment.topRight,
-                child: PopupMenuButton<String>(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.locale.languageCode.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+        child: SingleChildScrollView(
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 16, right: 16),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: PopupMenuButton<String>(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.locale.languageCode.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.black),
-                      ],
+                          const Icon(Icons.keyboard_arrow_down,
+                              color: Colors.black),
+                        ],
+                      ),
                     ),
+                    onSelected: (String value) {
+                      context.setLocale(Locale(value));
+                    },
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'fr',
+                        child: Text('FR - Français'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'ar',
+                        child: Text('AR - العربية'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'en',
+                        child: Text('EN - English'),
+                      ),
+                    ],
                   ),
-                  onSelected: (String value) {
-                    context.setLocale(Locale(value));
-                  },
-                  itemBuilder: (BuildContext context) =>
-                      <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'fr',
-                      child: Text('FR - Français'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'ar',
-                      child: Text('AR - العربية'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'en',
-                      child: Text('EN - English'),
-                    ),
-                  ],
                 ),
               ),
-            ),
-
-            // الشعار مع المسافة الصحيحة
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 30),
-              child: Center(
-                child: Image.asset(
-                  'assets/images/Groupes@4x.png',
-                  width: 110,
-                  height: 110,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 30),
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/Groupes@4x.png',
+                    width: 110,
+                    height: 110,
+                  ),
                 ),
               ),
-            ),
-
-            // الحاوية الرئيسية
-            Expanded(
-              child: Container(
+              Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
                   child: Column(
                     children: [
-                      // العنوان
                       Text(
                         'choose_profile_picture'.tr(),
                         style: const TextStyle(
@@ -101,8 +95,6 @@ class _SelfieScreenState extends State<SelfieScreen> {
                         ),
                       ),
                       const SizedBox(height: 40),
-
-                      // صورة الملف الشخصي الافتراضية
                       Container(
                         width: 120,
                         height: 120,
@@ -119,8 +111,6 @@ class _SelfieScreenState extends State<SelfieScreen> {
                         ),
                       ),
                       const SizedBox(height: 60),
-
-                      // خيارات الصورة
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
                         transitionBuilder:
@@ -143,11 +133,8 @@ class _SelfieScreenState extends State<SelfieScreen> {
                             ? Column(
                                 key: const ValueKey('main_options'),
                                 children: [
-                                  // زر التقاط صورة الآن
                                   InkWell(
-                                    onTap: () {
-                                      // التقاط صورة
-                                    },
+                                    onTap: () {},
                                     child: Container(
                                       width: double.infinity,
                                       height: 50,
@@ -167,8 +154,6 @@ class _SelfieScreenState extends State<SelfieScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 15),
-
-                                  // زر اختيار صورة
                                   InkWell(
                                     onTap: () {
                                       setState(() {
@@ -198,11 +183,8 @@ class _SelfieScreenState extends State<SelfieScreen> {
                             : Column(
                                 key: const ValueKey('sub_options'),
                                 children: [
-                                  // زر اختيار من المعرض
                                   InkWell(
-                                    onTap: () {
-                                      // اختيار من المعرض
-                                    },
+                                    onTap: () {},
                                     child: Container(
                                       width: double.infinity,
                                       height: 50,
@@ -222,12 +204,8 @@ class _SelfieScreenState extends State<SelfieScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 15),
-
-                                  // زر اختيار من الملفات
                                   InkWell(
-                                    onTap: () {
-                                      // اختيار من الملفات
-                                    },
+                                    onTap: () {},
                                     child: Container(
                                       width: double.infinity,
                                       height: 50,
@@ -247,8 +225,6 @@ class _SelfieScreenState extends State<SelfieScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 15),
-
-                                  // زر الرجوع
                                   InkWell(
                                     onTap: () {
                                       setState(() {
@@ -276,25 +252,19 @@ class _SelfieScreenState extends State<SelfieScreen> {
                                 ],
                               ),
                       ),
-
-                      const Spacer(),
-
-                      // شعار أسفل الصفحة
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
-                        child: Center(
-                          child: Image.asset(
-                            'assets/images/Rectangle@4x.png',
-                            height: 40,
-                          ),
+                      const SizedBox(height: 40),
+                      Center(
+                        child: Image.asset(
+                          'assets/images/Rectangle@4x.png',
+                          height: 40,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

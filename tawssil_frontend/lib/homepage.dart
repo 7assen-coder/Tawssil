@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'newaccount.dart';
-
+import 'ForgetPassword.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -23,7 +23,7 @@ class _HomePageState extends State<HomePage>
     bool isRTL = context.locale.languageCode == 'ar';
 
     return Scaffold(
-      backgroundColor: Colors.teal[400],
+      backgroundColor: const Color(0xFF2F9C95),
       body: SafeArea(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 500),
@@ -67,8 +67,8 @@ class _HomePageState extends State<HomePage>
                 fit: BoxFit.contain,
                 repeat: true,
                 animate: true,
-                frameRate:
-                    const FrameRate(120), // معدل إطارات أعلى للحركة الأكثر سلاسة
+                frameRate: const FrameRate(
+                    120), // معدل إطارات أعلى للحركة الأكثر سلاسة
               ),
             ),
           ],
@@ -84,56 +84,56 @@ class _HomePageState extends State<HomePage>
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 30.0),
-              color: Colors.teal[400],
+              color: const Color(0xFF2F9C95),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  // Language Selector
-                  Align(
-                    alignment: Alignment.topRight,
-                    child: PopupMenuButton<String>(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              context.locale.languageCode.toUpperCase(),
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16, right: 16),
+                    child: Align(
+                      alignment: Alignment.topRight,
+                      child: PopupMenuButton<String>(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.locale.languageCode.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const Icon(Icons.keyboard_arrow_down,
-                                color: Colors.black),
-                          ],
+                              const Icon(Icons.keyboard_arrow_down,
+                                  color: Colors.black),
+                            ],
+                          ),
                         ),
+                        onSelected: (String value) {
+                          context.setLocale(Locale(value));
+                        },
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<String>>[
+                          const PopupMenuItem<String>(
+                            value: 'fr',
+                            child: Text('FR - Français'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'ar',
+                            child: Text('AR - العربية'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'en',
+                            child: Text('EN - English'),
+                          ),
+                        ],
                       ),
-                      onSelected: (String value) {
-                        context.setLocale(Locale(value));
-                      },
-                      itemBuilder: (BuildContext context) =>
-                          <PopupMenuEntry<String>>[
-                        const PopupMenuItem<String>(
-                          value: 'fr',
-                          child: Text('FR - Français'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'ar',
-                          child: Text('AR - العربية'),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'en',
-                          child: Text('EN - English'),
-                        ),
-                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -251,7 +251,14 @@ class _HomePageState extends State<HomePage>
                         const SizedBox(height: 10),
                         Center(
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const ForgetPassword()),
+                              );
+                            },
                             child: Text(
                               'forgot_password'.tr(),
                               style: const TextStyle(
@@ -289,7 +296,8 @@ class _HomePageState extends State<HomePage>
                             onPressed: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => const NewAccount()),
+                                MaterialPageRoute(
+                                    builder: (context) => const NewAccount()),
                               );
                             },
                             child: Text(

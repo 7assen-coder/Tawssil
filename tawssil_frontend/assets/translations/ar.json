@@ -45,5 +45,14 @@
   "choose_image": "اختيار صورة",
   "choose_from_gallery": "اختيار من المعرض",
   "choose_from_files": "اختيار من الملفات",
-  "back": "رجوع"
+  "back": "رجوع",
+  "Password_reset" : "إعادة ضبط كلمة السر",
+  "Processing_method" : "إختر طريقة المعالجة",
+  "To_Num" : "سيتم إرسال الرمز إلى الرقم",
+  "To_Email" : "سيتم إرسال الرمز إلى البريد الإلكتروني",
+  "create_Npassword": "إنشاء كلمة مرور جديدة",
+  "Send_Code":"أرسل الرمز",
+  "change_method" : "غير الطريقة"
+
+   
 }

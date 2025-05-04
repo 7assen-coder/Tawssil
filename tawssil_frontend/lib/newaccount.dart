@@ -14,50 +14,52 @@ class NewAccount extends StatelessWidget {
           // Added SingleChildScrollView
           child: Column(
             children: [
-              // Language Selector
-              Align(
-                alignment: Alignment.topRight,
-                child: PopupMenuButton<String>(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.locale.languageCode.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
+              Padding(
+                padding: const EdgeInsets.only(top: 16, right: 16),
+                child: Align(
+                  alignment: Alignment.topRight,
+                  child: PopupMenuButton<String>(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            context.locale.languageCode.toUpperCase(),
+                            style: const TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.black),
-                      ],
+                          const Icon(Icons.keyboard_arrow_down,
+                              color: Colors.black),
+                        ],
+                      ),
                     ),
+                    onSelected: (String value) {
+                      context.setLocale(Locale(value));
+                    },
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
+                      const PopupMenuItem<String>(
+                        value: 'fr',
+                        child: Text('FR - Français'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'ar',
+                        child: Text('AR - العربية'),
+                      ),
+                      const PopupMenuItem<String>(
+                        value: 'en',
+                        child: Text('EN - English'),
+                      ),
+                    ],
                   ),
-                  onSelected: (String value) {
-                    context.setLocale(Locale(value));
-                  },
-                  itemBuilder: (BuildContext context) =>
-                      <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'fr',
-                      child: Text('FR - Français'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'ar',
-                      child: Text('AR - العربية'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'en',
-                      child: Text('EN - English'),
-                    ),
-                  ],
                 ),
               ),
               const SizedBox(height: 20),
@@ -297,7 +299,7 @@ class NewAccount extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            'verification_code'.tr(),
+                                            'verify_code'.tr(),
                                             style: TextStyle(
                                               color: Colors.grey[400],
                                             ),
@@ -352,6 +354,7 @@ class NewAccount extends StatelessWidget {
                         ],
                       ),
                     ),
+
                     // Bottom Logo
                     Positioned(
                       bottom: 20,
