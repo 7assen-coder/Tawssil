@@ -1,0 +1,171 @@
+name: Mobile Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'App version (e.g., 1.0.0)'
+        required: true
+      release_notes:
+        description: 'Release notes'
+        required: true
+
+jobs:
+  deploy_android:
+    name: Deploy Android to Play Store
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Update version
+        run: |
+          sed -i "s/version: .*/version: ${{ github.event.inputs.version }}/" pubspec.yaml
+      
+      - name: Build AAB
+        run: flutter build appbundle --release
+      
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: tawssil_frontend/android
+      
+      - name: Create Fastlane Gemfile if not exists
+        run: |
+          if [ ! -f "android/Gemfile" ]; then
+            echo 'source "https://rubygems.org"' > android/Gemfile
+            echo 'gem "fastlane"' >> android/Gemfile
+          fi
+      
+      - name: Create Fastlane files if not exists
+        run: |
+          mkdir -p android/fastlane
+          if [ ! -f "android/fastlane/Fastfile" ]; then
+            echo 'default_platform(:android)' > android/fastlane/Fastfile
+            echo 'platform :android do' >> android/fastlane/Fastfile
+            echo '  desc "Deploy to Play Store"' >> android/fastlane/Fastfile
+            echo '  lane :deploy do' >> android/fastlane/Fastfile
+            echo '    upload_to_play_store(' >> android/fastlane/Fastfile
+            echo '      track: "internal",' >> android/fastlane/Fastfile
+            echo '      aab: "../build/app/outputs/bundle/release/app-release.aab",' >> android/fastlane/Fastfile
+            echo '      json_key_data: ENV["PLAY_STORE_JSON_KEY"],' >> android/fastlane/Fastfile
+            echo '      release_notes: {' >> android/fastlane/Fastfile
+            echo '        "en-US" => ENV["RELEASE_NOTES"]' >> android/fastlane/Fastfile
+            echo '      }' >> android/fastlane/Fastfile
+            echo '    )' >> android/fastlane/Fastfile
+            echo '  end' >> android/fastlane/Fastfile
+            echo 'end' >> android/fastlane/Fastfile
+          fi
+      
+      - name: Deploy to Play Store
+        run: |
+          cd android
+          bundle install
+          bundle exec fastlane deploy
+        env:
+          PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+
+  deploy_ios:
+    name: Deploy iOS to App Store
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Update version
+        run: |
+          sed -i '' "s/version: .*/version: ${{ github.event.inputs.version }}/" pubspec.yaml
+      
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      
+      - name: Setup Provisioning Profile
+        run: |
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          echo "${{ secrets.PROVISIONING_PROFILE }}" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+      
+      - name: Setup Code Signing
+        run: |
+          echo "${{ secrets.APPSTORE_API_KEY_JSON }}" > appstore_api_key.json
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          echo "${{ secrets.CERTIFICATE_P12 }}" | base64 --decode > certificate.p12
+          security import certificate.p12 -k build.keychain -P "${{ secrets.CERTIFICATE_PASSWORD }}" -A
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+      
+      - name: Setup Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: tawssil_frontend/ios
+      
+      - name: Create Fastlane Gemfile if not exists
+        run: |
+          if [ ! -f "ios/Gemfile" ]; then
+            echo 'source "https://rubygems.org"' > ios/Gemfile
+            echo 'gem "fastlane"' >> ios/Gemfile
+          fi
+      
+      - name: Create Fastlane files if not exists
+        run: |
+          mkdir -p ios/fastlane
+          if [ ! -f "ios/fastlane/Fastfile" ]; then
+            echo 'default_platform(:ios)' > ios/fastlane/Fastfile
+            echo 'platform :ios do' >> ios/fastlane/Fastfile
+            echo '  desc "Deploy to App Store"' >> ios/fastlane/Fastfile
+            echo '  lane :deploy do' >> ios/fastlane/Fastfile
+            echo '    build_app(workspace: "Runner.xcworkspace", scheme: "Runner")' >> ios/fastlane/Fastfile
+            echo '    app_store_connect_api_key(key_filepath: "../appstore_api_key.json")' >> ios/fastlane/Fastfile
+            echo '    upload_to_app_store(' >> ios/fastlane/Fastfile
+            echo '      precheck_include_in_app_purchases: false,' >> ios/fastlane/Fastfile
+            echo '      skip_metadata: false,' >> ios/fastlane/Fastfile
+            echo '      skip_screenshots: true,' >> ios/fastlane/Fastfile
+            echo '      submit_for_review: false,' >> ios/fastlane/Fastfile
+            echo '      release_notes: {' >> ios/fastlane/Fastfile
+            echo '        "en-US" => ENV["RELEASE_NOTES"]' >> ios/fastlane/Fastfile
+            echo '      }' >> ios/fastlane/Fastfile
+            echo '    )' >> ios/fastlane/Fastfile
+            echo '  end' >> ios/fastlane/Fastfile
+            echo 'end' >> ios/fastlane/Fastfile
+          fi
+      
+      - name: Deploy to App Store
+        run: |
+          cd ios
+          bundle install
+          bundle exec fastlane deploy
+        env:
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }} 

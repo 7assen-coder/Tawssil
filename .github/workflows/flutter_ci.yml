@@ -1,0 +1,132 @@
+name: Flutter CI/CD
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'tawssil_frontend/**'
+      - '.github/workflows/flutter_ci.yml'
+  pull_request:
+    branches: [ main, master, develop ]
+    paths:
+      - 'tawssil_frontend/**'
+      - '.github/workflows/flutter_ci.yml'
+
+jobs:
+  flutter_test:
+    name: Run Flutter tests and analyze
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Verify formatting
+        run: flutter format --set-exit-if-changed lib
+      
+      - name: Analyze project source
+        run: flutter analyze
+      
+      - name: Run tests
+        run: flutter test
+
+  build_android:
+    name: Build Android APK
+    needs: flutter_test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build APK
+        run: flutter build apk --release
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: release-apk
+          path: tawssil_frontend/build/app/outputs/flutter-apk/app-release.apk
+
+  build_ios:
+    name: Build iOS IPA
+    needs: flutter_test
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.0'
+          channel: 'stable'
+          cache: true
+      
+      - name: Install dependencies
+        run: flutter pub get
+      
+      - name: Build iOS
+        run: flutter build ios --release --no-codesign
+      
+      - name: Setup Ruby and Fastlane
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: tawssil_frontend/ios
+      
+      - name: Install Fastlane
+        run: cd ios && gem install fastlane
+      
+      - name: Create Fastlane Gemfile if not exists
+        run: |
+          if [ ! -f "ios/Gemfile" ]; then
+            echo 'source "https://rubygems.org"' > ios/Gemfile
+            echo 'gem "fastlane"' >> ios/Gemfile
+          fi
+
+      - name: Create Fastfile if not exists
+        run: |
+          mkdir -p ios/fastlane
+          if [ ! -f "ios/fastlane/Fastfile" ]; then
+            echo 'default_platform(:ios)' > ios/fastlane/Fastfile
+            echo 'platform :ios do' >> ios/fastlane/Fastfile
+            echo '  desc "Build iOS app for CI"' >> ios/fastlane/Fastfile
+            echo '  lane :build do' >> ios/fastlane/Fastfile
+            echo '    build_app(workspace: "Runner.xcworkspace", scheme: "Runner", export_method: "development", skip_package_ipa: true)' >> ios/fastlane/Fastfile
+            echo '  end' >> ios/fastlane/Fastfile
+            echo 'end' >> ios/fastlane/Fastfile
+          fi
+
+      - name: Build with Fastlane
+        run: cd ios && bundle install && bundle exec fastlane build
+        env:
+          FASTLANE_SKIP_UPDATE_CHECK: true 

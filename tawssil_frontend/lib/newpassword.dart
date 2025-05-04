@@ -3,7 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'homepage.dart';
 
 class NewPasswordPage extends StatefulWidget {
-  const NewPasswordPage({Key? key}) : super(key: key);
+  const NewPasswordPage({super.key});
 
   @override
   State<NewPasswordPage> createState() => _NewPasswordPageState();
@@ -15,421 +15,574 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
       TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _isFormValid = false;
+  String? _passwordError;
+  String? _confirmPasswordError;
+
+  // تعبير نمطي للتحقق من صحة كلمة المرور - يجب أن تحتوي على 8 أحرف على الأقل بما في ذلك حرف كبير وحرف صغير ورقم
+  final RegExp _passwordRegex =
+      RegExp(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$');
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_validateForm);
+    _confirmPasswordController.addListener(_validateForm);
+  }
+
+  @override
+  void dispose() {
+    _passwordController.removeListener(_validateForm);
+    _confirmPasswordController.removeListener(_validateForm);
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _validateForm() {
+    final passwordValue = _passwordController.text;
+    final confirmValue = _confirmPasswordController.text;
+
+    if (passwordValue.isEmpty) {
+      setState(() {
+        _passwordError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (!_passwordRegex.hasMatch(passwordValue)) {
+      setState(() {
+        _passwordError = 'password_requirement'.tr();
+        _isFormValid = false;
+      });
+    } else {
+      setState(() {
+        _passwordError = null;
+      });
+    }
+
+    if (confirmValue.isEmpty) {
+      setState(() {
+        _confirmPasswordError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (confirmValue != passwordValue) {
+      setState(() {
+        _confirmPasswordError = 'passwords_not_match'.tr();
+        _isFormValid = false;
+      });
+    } else {
+      setState(() {
+        _confirmPasswordError = null;
+      });
+    }
+
+    setState(() {
+      _isFormValid = _passwordError == null &&
+          _confirmPasswordError == null &&
+          passwordValue.isNotEmpty &&
+          confirmValue.isNotEmpty;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF2F9C95),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16, right: 16),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: PopupMenuButton<String>(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            context.locale.languageCode.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
+    // استخدام MediaQuery للحصول على أبعاد الشاشة
+    final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
+
+    // استخدام PopScope بدلاً من WillPopScope لمنع الرجوع غير المقصود
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult:
+          (bool didPop, Future<dynamic> Function(bool)? popResult) async {
+        // لا نقوم بأي إجراء عند الضغط على زر الرجوع الخاص بنظام Android
+        if (didPop) return;
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF2F9C95),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 16, right: 16, left: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      PopupMenuButton<String>(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const Icon(Icons.keyboard_arrow_down,
-                              color: Colors.black),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                context.locale.languageCode.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const Icon(Icons.keyboard_arrow_down,
+                                  color: Colors.black),
+                            ],
+                          ),
+                        ),
+                        onSelected: (String value) {
+                          context.setLocale(Locale(value));
+                        },
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<String>>[
+                          const PopupMenuItem<String>(
+                            value: 'fr',
+                            child: Text('FR - Français'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'ar',
+                            child: Text('AR - العربية'),
+                          ),
+                          const PopupMenuItem<String>(
+                            value: 'en',
+                            child: Text('EN - English'),
+                          ),
                         ],
-                      ),
-                    ),
-                    onSelected: (String value) {
-                      context.setLocale(Locale(value));
-                    },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'fr',
-                        child: Text('FR - Français'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'ar',
-                        child: Text('AR - العربية'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'en',
-                        child: Text('EN - English'),
                       ),
                     ],
                   ),
                 ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 30),
-                child: Center(
-                  child: Image.asset(
-                    'assets/images/Groupes@4x.png',
-                    width: 110,
-                    height: 110,
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 30),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/images/Groupes@4x.png',
+                      width: screenHeight * 0.12,
+                      height: screenHeight * 0.12,
+                    ),
                   ),
                 ),
-              ),
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                Container(
+                  width: double.infinity,
+                  height: MediaQuery.of(context).size.height -
+                      (screenHeight * 0.12 + 80),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(40)),
+                  ),
+                  child: Stack(
                     children: [
-                      Text(
-                        'Password_reset'.tr(),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      Stack(
-                        children: [
-                          Positioned(
-                            left:
-                                context.locale.languageCode == 'ar' ? null : 19,
-                            right:
-                                context.locale.languageCode == 'ar' ? 19 : null,
-                            top: 20,
-                            bottom: 80,
-                            child: Container(
-                              width: 2,
-                              color: const Color(0xFF2F9C95),
-                            ),
-                          ),
-                          Column(
+                      SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 24, 16, 80),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    child: const CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: Color(0xFF2F9C95),
-                                      child: Text(
-                                        '1',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'step1'.tr(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        'Processing_method'.tr(),
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      Text(
-                                        'success_completed'.tr(),
-                                        style: const TextStyle(
-                                          color: Color(0xFF2F9C95),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                              Text(
+                                'Password_reset'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                              const SizedBox(height: 40),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
+                              const SizedBox(height: 20),
+                              Stack(
                                 children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    child: const CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: Color(0xFF2F9C95),
-                                      child: Text(
-                                        '2',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                  Positioned(
+                                    left: context.locale.languageCode == 'ar'
+                                        ? null
+                                        : 19,
+                                    right: context.locale.languageCode == 'ar'
+                                        ? 19
+                                        : null,
+                                    top: 20,
+                                    bottom: 140,
+                                    child: Container(
+                                      width: 2,
+                                      color: const Color(0xFF2F9C95),
                                     ),
                                   ),
-                                  const SizedBox(width: 10),
                                   Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'step2'.tr(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      Text(
-                                        'verify_code'.tr(),
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      Text(
-                                        'success_completed'.tr(),
-                                        style: const TextStyle(
-                                          color: Color(0xFF2F9C95),
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 40),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 40,
-                                    child: const CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: Color(0xFF2F9C95),
-                                      child: Text(
-                                        '3',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'step3'.tr(),
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                        Text(
-                                          'create_Npassword'.tr(),
-                                          style: const TextStyle(
-                                              color: Colors.grey, fontSize: 12),
-                                        ),
-                                        const SizedBox(height: 15),
-                                        Column(
-                                          key:
-                                              const ValueKey('password_inputs'),
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color:
-                                                        Colors.grey.shade300),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: TextField(
-                                                controller: _passwordController,
-                                                obscureText: _obscurePassword,
-                                                textAlign: context.locale
-                                                            .languageCode ==
-                                                        'ar'
-                                                    ? TextAlign.right
-                                                    : TextAlign.left,
-                                                decoration: InputDecoration(
-                                                  hintText: 'password'.tr(),
-                                                  hintStyle: const TextStyle(
-                                                      color: Colors.grey),
-                                                  border: InputBorder.none,
-                                                  contentPadding:
-                                                      const EdgeInsets
-                                                          .symmetric(
-                                                    horizontal: 12,
-                                                    vertical:
-                                                        16, // This controls vertical alignment
-                                                  ),
-                                                  suffixIcon: IconButton(
-                                                    icon: Icon(_obscurePassword
-                                                        ? Icons.visibility_off
-                                                        : Icons.visibility),
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        _obscurePassword =
-                                                            !_obscurePassword;
-                                                      });
-                                                    },
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(height: 15),
-                                            Container(
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                    color:
-                                                        Colors.grey.shade300),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: TextField(
-                                                controller:
-                                                    _confirmPasswordController,
-                                                obscureText:
-                                                    _obscureConfirmPassword,
-                                                textAlign: context.locale
-                                                            .languageCode ==
-                                                        'ar'
-                                                    ? TextAlign.right
-                                                    : TextAlign.left,
-                                                decoration: InputDecoration(
-                                                  hintText:
-                                                      'confirm_password'.tr(),
-                                                  hintStyle: const TextStyle(
-                                                      color: Colors.grey),
-                                                  border: InputBorder.none,
-                                                  contentPadding:
-                                                      const EdgeInsets
-                                                          .symmetric(
-                                                          horizontal: 12,
-                                                          vertical: 16),
-                                                  suffixIcon: IconButton(
-                                                    icon: Icon(
-                                                        _obscureConfirmPassword
-                                                            ? Icons
-                                                                .visibility_off
-                                                            : Icons.visibility),
-                                                    onPressed: () {
-                                                      setState(() {
-                                                        _obscureConfirmPassword =
-                                                            !_obscureConfirmPassword;
-                                                      });
-                                                    },
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        const SizedBox(height: 20),
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 40,
+                                            height: 40,
+                                            child: CircleAvatar(
+                                              radius: 14,
                                               backgroundColor:
-                                                  const Color(0xFF2F9C95),
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                            ),
-                                            onPressed: () {
-                                              Navigator.push(
-                                                context,
-                                                PageRouteBuilder(
-                                                  pageBuilder: (context,
-                                                          animation,
-                                                          secondaryAnimation) =>
-                                                      const HomePage(),
-                                                  transitionsBuilder: (context,
-                                                      animation,
-                                                      secondaryAnimation,
-                                                      child) {
-                                                    const begin =
-                                                        Offset(0.0, -1.0);
-                                                    const end = Offset.zero;
-                                                    const curve =
-                                                        Curves.easeInOut;
-
-                                                    var tween = Tween(
-                                                            begin: begin,
-                                                            end: end)
-                                                        .chain(CurveTween(
-                                                            curve: curve));
-                                                    var offsetAnimation =
-                                                        animation.drive(tween);
-
-                                                    return FadeTransition(
-                                                      opacity: animation,
-                                                      child: SlideTransition(
-                                                        position:
-                                                            offsetAnimation,
-                                                        child: child,
-                                                      ),
-                                                    );
-                                                  },
-                                                  transitionDuration:
-                                                      const Duration(
-                                                          milliseconds: 400),
+                                                  Color(0xFF2F9C95),
+                                              child: Text(
+                                                '1',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
-                                              );
-                                            },
-                                            child: Text(
-                                              'continue'.tr(),
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+                                          const SizedBox(width: 10),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'step1'.tr(),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'Processing_method'.tr(),
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              Text(
+                                                'success_completed'.tr(),
+                                                style: const TextStyle(
+                                                  color: Color(0xFF2F9C95),
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 40),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 40,
+                                            height: 40,
+                                            child: CircleAvatar(
+                                              radius: 14,
+                                              backgroundColor:
+                                                  Color(0xFF2F9C95),
+                                              child: Text(
+                                                '2',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'step2'.tr(),
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                              Text(
+                                                'verify_code'.tr(),
+                                                style: const TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                              Text(
+                                                'success_completed'.tr(),
+                                                style: const TextStyle(
+                                                  color: Color(0xFF2F9C95),
+                                                  fontSize: 12,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 40),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(
+                                            width: 40,
+                                            height: 40,
+                                            child: CircleAvatar(
+                                              radius: 14,
+                                              backgroundColor:
+                                                  Color(0xFF2F9C95),
+                                              child: Text(
+                                                '3',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'step3'.tr(),
+                                                  style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold),
+                                                ),
+                                                Text(
+                                                  'create_Npassword'.tr(),
+                                                  style: const TextStyle(
+                                                      color: Colors.grey,
+                                                      fontSize: 12),
+                                                ),
+                                                const SizedBox(height: 15),
+                                                Column(
+                                                  key: const ValueKey(
+                                                      'password_inputs'),
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Container(
+                                                      decoration: BoxDecoration(
+                                                        border: Border.all(
+                                                            color: Colors
+                                                                .grey.shade300),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                      ),
+                                                      child: TextField(
+                                                        controller:
+                                                            _passwordController,
+                                                        obscureText:
+                                                            _obscurePassword,
+                                                        textAlign: context
+                                                                    .locale
+                                                                    .languageCode ==
+                                                                'ar'
+                                                            ? TextAlign.right
+                                                            : TextAlign.left,
+                                                        decoration:
+                                                            InputDecoration(
+                                                          hintText:
+                                                              'password'.tr(),
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .grey),
+                                                          border:
+                                                              InputBorder.none,
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                            horizontal: 12,
+                                                            vertical: 16,
+                                                          ),
+                                                          suffixIcon:
+                                                              IconButton(
+                                                            icon: Icon(_obscurePassword
+                                                                ? Icons
+                                                                    .visibility_off
+                                                                : Icons
+                                                                    .visibility),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                _obscurePassword =
+                                                                    !_obscurePassword;
+                                                              });
+                                                            },
+                                                          ),
+                                                          errorText:
+                                                              _passwordError,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 15),
+                                                    Container(
+                                                      decoration: BoxDecoration(
+                                                        border: Border.all(
+                                                            color: Colors
+                                                                .grey.shade300),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                      ),
+                                                      child: TextField(
+                                                        controller:
+                                                            _confirmPasswordController,
+                                                        obscureText:
+                                                            _obscureConfirmPassword,
+                                                        textAlign: context
+                                                                    .locale
+                                                                    .languageCode ==
+                                                                'ar'
+                                                            ? TextAlign.right
+                                                            : TextAlign.left,
+                                                        decoration:
+                                                            InputDecoration(
+                                                          hintText:
+                                                              'confirm_password'
+                                                                  .tr(),
+                                                          hintStyle:
+                                                              const TextStyle(
+                                                                  color: Colors
+                                                                      .grey),
+                                                          border:
+                                                              InputBorder.none,
+                                                          contentPadding:
+                                                              const EdgeInsets
+                                                                  .symmetric(
+                                                                  horizontal:
+                                                                      12,
+                                                                  vertical: 16),
+                                                          suffixIcon:
+                                                              IconButton(
+                                                            icon: Icon(_obscureConfirmPassword
+                                                                ? Icons
+                                                                    .visibility_off
+                                                                : Icons
+                                                                    .visibility),
+                                                            onPressed: () {
+                                                              setState(() {
+                                                                _obscureConfirmPassword =
+                                                                    !_obscureConfirmPassword;
+                                                              });
+                                                            },
+                                                          ),
+                                                          errorText:
+                                                              _confirmPasswordError,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 20),
+                                                SizedBox(
+                                                  width: double.infinity,
+                                                  child: ElevatedButton(
+                                                    style: ElevatedButton
+                                                        .styleFrom(
+                                                      backgroundColor:
+                                                          _isFormValid
+                                                              ? const Color(
+                                                                  0xFF2F9C95)
+                                                              : Colors.grey,
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 12),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
+                                                      ),
+                                                    ),
+                                                    onPressed: _isFormValid
+                                                        ? () {
+                                                            Navigator.push(
+                                                              context,
+                                                              PageRouteBuilder(
+                                                                pageBuilder: (context,
+                                                                        animation,
+                                                                        secondaryAnimation) =>
+                                                                    const HomePage(),
+                                                                transitionsBuilder:
+                                                                    (context,
+                                                                        animation,
+                                                                        secondaryAnimation,
+                                                                        child) {
+                                                                  const begin =
+                                                                      Offset(
+                                                                          0.0,
+                                                                          -1.0);
+                                                                  const end =
+                                                                      Offset
+                                                                          .zero;
+                                                                  const curve =
+                                                                      Curves
+                                                                          .easeInOut;
+
+                                                                  var tween = Tween(
+                                                                          begin:
+                                                                              begin,
+                                                                          end:
+                                                                              end)
+                                                                      .chain(CurveTween(
+                                                                          curve:
+                                                                              curve));
+                                                                  var offsetAnimation =
+                                                                      animation
+                                                                          .drive(
+                                                                              tween);
+
+                                                                  return FadeTransition(
+                                                                    opacity:
+                                                                        animation,
+                                                                    child:
+                                                                        SlideTransition(
+                                                                      position:
+                                                                          offsetAnimation,
+                                                                      child:
+                                                                          child,
+                                                                    ),
+                                                                  );
+                                                                },
+                                                                transitionDuration:
+                                                                    const Duration(
+                                                                        milliseconds:
+                                                                            400),
+                                                              ),
+                                                            );
+                                                          }
+                                                        : null,
+                                                    child: Text(
+                                                      'continue'.tr(),
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 20),
-                              Center(
-                                child: Image.asset(
-                                  'assets/images/Rectangle@4x.png',
-                                  height: 40,
-                                ),
-                              ),
                             ],
                           ),
-                        ],
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 20,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Image.asset(
+                            'assets/images/Rectangle@4x.png',
+                            height: screenHeight * 0.04,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

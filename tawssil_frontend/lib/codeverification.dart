@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'password.dart';
 
 class CodeVerification extends StatefulWidget {
-  const CodeVerification({super.key});
+  final String email;
+  final String phone;
+
+  const CodeVerification({
+    super.key,
+    required this.email,
+    required this.phone,
+  });
 
   @override
   State<CodeVerification> createState() => _CodeVerificationState();
@@ -15,6 +23,9 @@ class _CodeVerificationState extends State<CodeVerification> {
       List.generate(4, (index) => TextEditingController());
   late Timer _timer;
   int _remainingSeconds = 179; // 2m 59s
+  int _resendCount = 0;
+  bool _isUsingEmail = false;
+  bool _canResend = false;
 
   @override
   void initState() {
@@ -24,11 +35,13 @@ class _CodeVerificationState extends State<CodeVerification> {
   }
 
   void startTimer() {
+    _canResend = false;
     const oneSec = Duration(seconds: 1);
     _timer = Timer.periodic(oneSec, (timer) {
       if (_remainingSeconds < 1) {
         setState(() {
           timer.cancel();
+          _canResend = true;
         });
       } else {
         setState(() {
@@ -38,11 +51,42 @@ class _CodeVerificationState extends State<CodeVerification> {
     });
   }
 
+  void resetTimer() {
+    _timer.cancel();
+    setState(() {
+      _resendCount++;
+      // زيادة الوقت بمقدار 3 دقائق × عدد مرات إعادة الإرسال
+      _remainingSeconds = 180 * (_resendCount + 1) - 1;
+      _canResend = false;
+    });
+    startTimer();
+  }
+
   // دالة لتنسيق الوقت بصيغة دقائق وثواني
   String get formattedTime {
     int minutes = _remainingSeconds ~/ 60;
     int seconds = _remainingSeconds % 60;
     return "${minutes}m ${seconds}s";
+  }
+
+  // دالة لإظهار البريد الإلكتروني أو رقم الهاتف مع إخفاء جزء منه
+  String get maskedContact {
+    if (_isUsingEmail) {
+      // إخفاء جزء من البريد الإلكتروني (مثال: a***@example.com)
+      String email = widget.email;
+      int atIndex = email.indexOf('@');
+      if (atIndex > 1) {
+        return "${email.substring(0, 1)}${'*' * (atIndex - 1)}${email.substring(atIndex)}";
+      }
+      return email;
+    } else {
+      // إخفاء جزء من رقم الهاتف (مثال: ****4343)
+      String phone = widget.phone;
+      if (phone.length > 4) {
+        return "${'*' * (phone.length - 4)}${phone.substring(phone.length - 4)}";
+      }
+      return phone;
+    }
   }
 
   @override
@@ -155,7 +199,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                             right:
                                 context.locale.languageCode == 'ar' ? 19 : null,
                             top: 20,
-                            bottom: 80,
+                            bottom: 0,
                             child: Container(
                               width: 2,
                               color: const Color(0xFF2F9C95),
@@ -250,7 +294,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                                         CrossAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'verification_sent'.tr() + ' ****4343',
+                                        '${'verification_sent'.tr()} $maskedContact',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             color: Colors.grey[600],
@@ -258,7 +302,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'expiration'.tr() + ' $formattedTime',
+                                        '${'expiration'.tr()} $formattedTime',
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                             color: Colors.grey[600],
@@ -292,54 +336,73 @@ class _CodeVerificationState extends State<CodeVerification> {
                                                 counterText: '',
                                                 border: InputBorder.none,
                                               ),
+                                              enableInteractiveSelection: false,
+                                              readOnly: index !=
+                                                  _getActiveFieldIndex(),
+                                              focusNode: null,
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
+                                                LengthLimitingTextInputFormatter(
+                                                    1),
+                                              ],
                                               onChanged: (value) {
-                                                if (value.length == 1 &&
-                                                    index < 3) {
-                                                  FocusScope.of(context)
-                                                      .nextFocus();
-                                                }
-                                                if (index == 3 &&
-                                                    value.length == 1) {
-                                                  bool allFieldsFilled =
-                                                      controllers
-                                                          .every((controller) =>
-                                                              controller.text
-                                                                  .isNotEmpty);
-                                                  if (allFieldsFilled) {
-                                                    Navigator.push(
-                                                      context,
-                                                      PageRouteBuilder(
-                                                        pageBuilder: (context,
-                                                                animation,
-                                                                secondaryAnimation) =>
-                                                            const Password(),
-                                                        transitionsBuilder:
-                                                            (context,
-                                                                animation,
-                                                                secondaryAnimation,
-                                                                child) {
-                                                          const begin =
-                                                              Offset(1.0, 0.0);
-                                                          const end =
-                                                              Offset.zero;
-                                                          const curve =
-                                                              Curves.easeInOut;
-                                                          var tween = Tween(
-                                                                  begin: begin,
-                                                                  end: end)
-                                                              .chain(CurveTween(
-                                                                  curve:
-                                                                      curve));
-                                                          var offsetAnimation =
-                                                              animation
-                                                                  .drive(tween);
-                                                          return SlideTransition(
-                                                              position:
-                                                                  offsetAnimation,
-                                                              child: child);
-                                                        },
-                                                      ),
-                                                    );
+                                                if (value.isNotEmpty) {
+                                                  if (index < 3) {
+                                                    setState(() {});
+                                                    FocusScope.of(context)
+                                                        .nextFocus();
+                                                  } else if (index == 3) {
+                                                    bool allFieldsFilled =
+                                                        controllers.every(
+                                                            (controller) =>
+                                                                controller.text
+                                                                    .isNotEmpty);
+                                                    if (allFieldsFilled) {
+                                                      Navigator.push(
+                                                        context,
+                                                        PageRouteBuilder(
+                                                          pageBuilder: (context,
+                                                                  animation,
+                                                                  secondaryAnimation) =>
+                                                              const Password(),
+                                                          transitionsBuilder:
+                                                              (context,
+                                                                  animation,
+                                                                  secondaryAnimation,
+                                                                  child) {
+                                                            const begin =
+                                                                Offset(
+                                                                    1.0, 0.0);
+                                                            const end =
+                                                                Offset.zero;
+                                                            const curve = Curves
+                                                                .easeInOut;
+                                                            var tween = Tween(
+                                                                    begin:
+                                                                        begin,
+                                                                    end: end)
+                                                                .chain(CurveTween(
+                                                                    curve:
+                                                                        curve));
+                                                            var offsetAnimation =
+                                                                animation.drive(
+                                                                    tween);
+                                                            return SlideTransition(
+                                                                position:
+                                                                    offsetAnimation,
+                                                                child: child);
+                                                          },
+                                                        ),
+                                                      );
+                                                    }
+                                                  }
+                                                } else {
+                                                  if (index > 0) {
+                                                    controllers[index].clear();
+                                                    setState(() {});
+                                                    FocusScope.of(context)
+                                                        .previousFocus();
                                                   }
                                                 }
                                               },
@@ -348,15 +411,34 @@ class _CodeVerificationState extends State<CodeVerification> {
                                         ),
                                       ),
                                       TextButton(
-                                        onPressed: () {},
+                                        onPressed: _canResend
+                                            ? () {
+                                                resetTimer();
+                                                // هنا يمكن إضافة منطق لإعادة إرسال الرمز
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        'code_resent'.tr()),
+                                                    backgroundColor:
+                                                        const Color(0xFF2F9C95),
+                                                  ),
+                                                );
+                                              }
+                                            : null,
                                         style: TextButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
                                               vertical: 4),
+                                          disabledForegroundColor:
+                                              Colors.grey.withOpacity(0.6),
                                         ),
                                         child: Text(
                                           'resend_code'.tr(),
-                                          style: const TextStyle(
-                                              color: Color(0xFF2F9C95),
+                                          style: TextStyle(
+                                              color: _canResend
+                                                  ? const Color(0xFF2F9C95)
+                                                  : Colors.grey
+                                                      .withOpacity(0.6),
                                               fontSize: 13),
                                         ),
                                       ),
@@ -458,15 +540,43 @@ class _CodeVerificationState extends State<CodeVerification> {
                                         ),
                                       ),
                                       TextButton(
-                                        onPressed: () {},
+                                        onPressed: _canResend
+                                            ? () {
+                                                setState(() {
+                                                  _isUsingEmail =
+                                                      !_isUsingEmail;
+                                                });
+                                                resetTimer();
+                                                // هنا يمكن إضافة منطق لإرسال الرمز عبر الوسيلة المختارة
+                                                String method = _isUsingEmail
+                                                    ? 'email'
+                                                    : 'phone';
+                                                ScaffoldMessenger.of(context)
+                                                    .showSnackBar(
+                                                  SnackBar(
+                                                    content: Text(
+                                                        '${'code_sent_to'.tr()} $method'),
+                                                    backgroundColor:
+                                                        const Color(0xFF2F9C95),
+                                                  ),
+                                                );
+                                              }
+                                            : null,
                                         style: TextButton.styleFrom(
                                           padding: const EdgeInsets.symmetric(
                                               vertical: 4),
+                                          disabledForegroundColor:
+                                              Colors.grey.withOpacity(0.6),
                                         ),
                                         child: Text(
-                                          'send_email'.tr(),
+                                          _isUsingEmail
+                                              ? 'send_phone'.tr()
+                                              : 'send_email'.tr(),
                                           style: TextStyle(
-                                              color: Colors.grey[600],
+                                              color: _canResend
+                                                  ? Colors.grey[600]
+                                                  : Colors.grey
+                                                      .withOpacity(0.6),
                                               fontSize: 13),
                                         ),
                                       ),
@@ -561,5 +671,14 @@ class _CodeVerificationState extends State<CodeVerification> {
         ),
       ),
     );
+  }
+
+  int _getActiveFieldIndex() {
+    for (int i = 0; i < controllers.length; i++) {
+      if (controllers[i].text.isEmpty) {
+        return i;
+      }
+    }
+    return controllers.length - 1;
   }
 }

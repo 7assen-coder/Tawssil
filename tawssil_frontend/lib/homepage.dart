@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'newaccount.dart';
-import 'ForgetPassword.dart';
+import 'forget_password.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +17,121 @@ class _HomePageState extends State<HomePage>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   bool _obscureText = true;
+
+  // إضافة متغيرات للتحكم في المدخلات
+  final TextEditingController _emailPhoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  String? _emailPhoneError;
+  String? _passwordError;
+  bool _isFormValid = false;
+
+  // Regular expressions للتحقق
+  final RegExp _phoneRegex =
+      RegExp(r'^[2-4]\d{7}$'); // يبدأ بـ 2,3,4 ويتكون من 8 أرقام
+  final RegExp _emailRegex =
+      RegExp(r'^[^@]+@[^@]+\.[^@]+$'); // تحقق بسيط من البريد الإلكتروني
+  final RegExp _passwordRegex = RegExp(
+      r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$'); // على الأقل 8 أحرف، حرف كبير، حرف صغير، رقم
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
+    // إضافة مستمعين للتحقق من صحة المدخلات على الفور
+    _emailPhoneController.addListener(_validateInputsOnChange);
+    _passwordController.addListener(_validateInputsOnChange);
+
+    Future.delayed(const Duration(seconds: 10), () {
+      if (mounted) {
+        setState(() {
+          showLogin = true;
+        });
+        _controller.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _emailPhoneController.dispose();
+    _passwordController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // التحقق من صحة المدخلات عند تغييرها
+  void _validateInputsOnChange() {
+    // التحقق من البريد الإلكتروني أو رقم الهاتف
+    final emailPhoneValue = _emailPhoneController.text.trim();
+    if (emailPhoneValue.isEmpty) {
+      setState(() {
+        _emailPhoneError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (_phoneRegex.hasMatch(emailPhoneValue)) {
+      // صالح - رقم هاتف
+      setState(() {
+        _emailPhoneError = null;
+        _checkFormValidity();
+      });
+    } else if (_emailRegex.hasMatch(emailPhoneValue)) {
+      // صالح - بريد إلكتروني
+      setState(() {
+        _emailPhoneError = null;
+        _checkFormValidity();
+      });
+    } else {
+      setState(() {
+        _emailPhoneError = 'invalid_email_phone'.tr();
+        _isFormValid = false;
+      });
+    }
+
+    // التحقق من كلمة المرور
+    final passwordValue = _passwordController.text;
+    if (passwordValue.isEmpty) {
+      setState(() {
+        _passwordError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (!_passwordRegex.hasMatch(passwordValue)) {
+      setState(() {
+        _passwordError = 'password_requirement'.tr();
+        _isFormValid = false;
+      });
+    } else {
+      setState(() {
+        _passwordError = null;
+        _checkFormValidity();
+      });
+    }
+  }
+
+  // التحقق من صلاحية النموذج بأكمله
+  void _checkFormValidity() {
+    final emailPhoneValue = _emailPhoneController.text.trim();
+    final passwordValue = _passwordController.text;
+
+    bool isEmailPhoneValid = emailPhoneValue.isNotEmpty &&
+        (_phoneRegex.hasMatch(emailPhoneValue) ||
+            _emailRegex.hasMatch(emailPhoneValue));
+
+    bool isPasswordValid =
+        passwordValue.isNotEmpty && _passwordRegex.hasMatch(passwordValue);
+
+    setState(() {
+      _isFormValid = isEmailPhoneValid && isPasswordValid;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,45 +149,43 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildAnimation() {
-    return Container(
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // شعار التطبيق مع تأثير ظهور تدريجي
-            TweenAnimationBuilder<double>(
-              duration: const Duration(seconds: 3),
-              tween: Tween<double>(begin: 0.0, end: 1.0),
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.scale(
-                    scale: value,
-                    child: Image.asset(
-                      'assets/images/Groupes@4x.png',
-                      width: 200,
-                      height: 200,
-                    ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // شعار التطبيق مع تأثير ظهور تدريجي
+          TweenAnimationBuilder<double>(
+            duration: const Duration(seconds: 3),
+            tween: Tween<double>(begin: 0.0, end: 1.0),
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: Transform.scale(
+                  scale: value,
+                  child: Image.asset(
+                    'assets/images/Groupes@4x.png',
+                    width: 200,
+                    height: 200,
                   ),
-                );
-              },
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 30),
+          // رسوم متحركة للتحميل
+          SizedBox(
+            width: 300,
+            height: 300,
+            child: Lottie.network(
+              'https://lottie.host/704d7228-b25f-4aa5-960d-bd8b66a6257c/vaWOhNBobl.json',
+              fit: BoxFit.contain,
+              repeat: true,
+              animate: true,
+              frameRate:
+                  const FrameRate(120), // معدل إطارات أعلى للحركة الأكثر سلاسة
             ),
-            const SizedBox(height: 30),
-            // رسوم متحركة للتحميل
-            SizedBox(
-              width: 300,
-              height: 300,
-              child: Lottie.network(
-                'https://lottie.host/704d7228-b25f-4aa5-960d-bd8b66a6257c/vaWOhNBobl.json',
-                fit: BoxFit.contain,
-                repeat: true,
-                animate: true,
-                frameRate: const FrameRate(
-                    120), // معدل إطارات أعلى للحركة الأكثر سلاسة
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -204,7 +317,12 @@ class _HomePageState extends State<HomePage>
                         ),
                         const SizedBox(height: 30),
                         TextField(
+                          controller: _emailPhoneController,
                           textAlign: isRTL ? TextAlign.right : TextAlign.left,
+                          onChanged: (value) {
+                            // التحقق المباشر عند الكتابة
+                            _validateInputsOnChange();
+                          },
                           decoration: InputDecoration(
                             hintText: 'phone_email'.tr(),
                             hintStyle: TextStyle(color: Colors.grey[400]),
@@ -214,14 +332,32 @@ class _HomePageState extends State<HomePage>
                               borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide.none,
                             ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Colors.red, width: 1),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Colors.red, width: 2),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
+                            errorText: _emailPhoneError,
+                            prefixIcon: const Icon(Icons.person,
+                                color: Color(0xFF2F9C95)),
                           ),
                         ),
                         const SizedBox(height: 20),
                         TextField(
+                          controller: _passwordController,
                           textAlign: isRTL ? TextAlign.right : TextAlign.left,
                           obscureText: _obscureText,
+                          onChanged: (value) {
+                            // التحقق المباشر عند الكتابة
+                            _validateInputsOnChange();
+                          },
                           decoration: InputDecoration(
                             hintText: 'password'.tr(),
                             hintStyle: TextStyle(color: Colors.grey[400]),
@@ -231,8 +367,21 @@ class _HomePageState extends State<HomePage>
                               borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide.none,
                             ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Colors.red, width: 1),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  const BorderSide(color: Colors.red, width: 2),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 20, vertical: 15),
+                            errorText: _passwordError,
+                            prefixIcon: const Icon(Icons.lock,
+                                color: Color(0xFF2F9C95)),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureText
@@ -273,9 +422,20 @@ class _HomePageState extends State<HomePage>
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: _isFormValid
+                                ? () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('login_success'.tr()),
+                                        backgroundColor: Colors.green,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                : null, // تعطيل الزر إذا كانت المدخلات غير صالحة
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.black,
+                              disabledBackgroundColor: Colors.grey[400],
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -328,35 +488,5 @@ class _HomePageState extends State<HomePage>
         ),
       ),
     );
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500), // زيادة مدة التلاشي
-      vsync: this,
-    );
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-
-    // زيادة مدة عرض الرسوم المتحركة إلى 10 ثوانٍ
-    Future.delayed(const Duration(seconds: 10), () {
-      if (mounted) {
-        setState(() {
-          showLogin = true;
-        });
-        _controller.forward();
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 }

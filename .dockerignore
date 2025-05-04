@@ -1,8 +1,9 @@
+# Version control
 .git
 .github
 .gitignore
-.env
-.env.example
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,5 +24,36 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-*.log
-local_settings.py
+venv/
+.env
+.env.*
+!env.example
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Frontend files
+tawssil_frontend/node_modules/
+tawssil_frontend/.dart_tool/
+tawssil_frontend/.flutter-plugins
+tawssil_frontend/build/
+tawssil_frontend/.pub/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
