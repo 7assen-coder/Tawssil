@@ -1,5 +1,5 @@
 from django.db import models
-from utilisateurs.models import Chauffeur, Client
+from utilisateurs.models import Chauffeur
 
 class Vehicule(models.Model):
     TYPE_CHOICES = [
@@ -17,21 +17,3 @@ class Vehicule(models.Model):
     
     def __str__(self):
         return f"{self.type} - {self.matricule}"
-
-class Trajet(models.Model):
-    STATUT_CHOICES = [
-        ('En attente', 'En attente'),
-        ('En Cours', 'En Cours'),
-        ('Termine', 'Terminé'),
-    ]
-    
-    id_trajet = models.AutoField(primary_key=True)
-    chauffeur = models.ForeignKey(Chauffeur, on_delete=models.CASCADE)
-    client = models.ForeignKey(Client, on_delete=models.CASCADE)
-    adresse_depart = models.CharField(max_length=255)
-    adresse_arrivee = models.CharField(max_length=255)
-    prix = models.FloatField()
-    statut = models.CharField(max_length=15, choices=STATUT_CHOICES, default='En attente')
-    
-    def __str__(self):
-        return f"Trajet #{self.id_trajet} - {self.statut}"

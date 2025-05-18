@@ -1,9 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'homepage.dart';
+import 'services/otp_service.dart';
 
 class NewPasswordPage extends StatefulWidget {
-  const NewPasswordPage({super.key});
+  final String identifier;
+  final String otpCode;
+  final String userType;
+  final int userId;
+
+  const NewPasswordPage({
+    super.key,
+    required this.identifier,
+    required this.otpCode,
+    required this.userType,
+    required this.userId,
+  });
 
   @override
   State<NewPasswordPage> createState() => _NewPasswordPageState();
@@ -16,6 +28,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isFormValid = false;
+  bool _isLoading = false;
   String? _passwordError;
   String? _confirmPasswordError;
 
@@ -83,6 +96,180 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
     });
   }
 
+  // دالة لعرض رسالة خطأ
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'error_title'.tr(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'ok'.tr(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // دالة لعرض رسالة نجاح
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: Color(0xFF2F9C95),
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'success_title'.tr(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // بعد إغلاق الحوار، انتقل للصفحة الرئيسية
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const HomePage()),
+                (route) => false,
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFF2F9C95),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'ok'.tr(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // دالة لتغيير كلمة المرور
+  Future<void> _resetPassword() async {
+    if (!_isFormValid) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // كتابة سجلات تشخيصية مفصلة
+      debugPrint('=== RESET PASSWORD ATTEMPT ===');
+      debugPrint('Original identifier: ${widget.identifier}');
+      debugPrint('Original OTP code: ${widget.otpCode}');
+      debugPrint('User type: ${widget.userType}');
+      debugPrint('Password length: ${_passwordController.text.length}');
+      debugPrint('User ID: ${widget.userId}');
+
+      // تنسيق المعرف - للتشخيص
+      String identifier = widget.identifier;
+      String code = widget.otpCode;
+
+      // التأكد من قيم المعرف ورمز OTP
+      if (identifier.isEmpty || code.isEmpty) {
+        if (!mounted) return;
+        _showErrorDialog('input_required'.tr());
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // استخدام خدمة OTP لإعادة تعيين كلمة المرور
+      final result = await OTPService.resetPassword(
+        identifier: identifier,
+        otpCode: code,
+        newPassword: _passwordController.text,
+        userType: widget.userType,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (result['success']) {
+        _showSuccessDialog('password_reset_success'.tr());
+      } else {
+        String errorMessage = result['message'] ?? 'Failed to reset password';
+        debugPrint('Error message from server: $errorMessage');
+        _showErrorDialog(errorMessage.tr());
+      }
+    } catch (e) {
+      debugPrint('Error in _resetPassword: $e');
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      _showErrorDialog('system_error'.tr());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // استخدام MediaQuery للحصول على أبعاد الشاشة
@@ -103,53 +290,12 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 16, right: 16, left: 16),
+                const Padding(
+                  padding: EdgeInsets.only(top: 16, right: 16, left: 16),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      PopupMenuButton<String>(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                context.locale.languageCode.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Icon(Icons.keyboard_arrow_down,
-                                  color: Colors.black),
-                            ],
-                          ),
-                        ),
-                        onSelected: (String value) {
-                          context.setLocale(Locale(value));
-                        },
-                        itemBuilder: (BuildContext context) =>
-                            <PopupMenuEntry<String>>[
-                          const PopupMenuItem<String>(
-                            value: 'fr',
-                            child: Text('FR - Français'),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'ar',
-                            child: Text('AR - العربية'),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'en',
-                            child: Text('EN - English'),
-                          ),
-                        ],
-                      ),
+                      // زر اختيار اللغة تمت إزالته من هنا
                     ],
                   ),
                 ),
@@ -234,8 +380,8 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
                                               Text(
                                                 'step1'.tr(),
                                                 style: const TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                               ),
                                               Text(
                                                 'Processing_method'.tr(),
@@ -466,92 +612,51 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
                                                   ],
                                                 ),
                                                 const SizedBox(height: 20),
-                                                SizedBox(
-                                                  width: double.infinity,
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 30),
                                                   child: ElevatedButton(
+                                                    onPressed: _isFormValid &&
+                                                            !_isLoading
+                                                        ? _resetPassword
+                                                        : null,
                                                     style: ElevatedButton
                                                         .styleFrom(
-                                                      backgroundColor:
-                                                          _isFormValid
-                                                              ? const Color(
-                                                                  0xFF2F9C95)
-                                                              : Colors.grey,
-                                                      padding: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 12),
+                                                      minimumSize: const Size(
+                                                          double.infinity, 50),
                                                       shape:
                                                           RoundedRectangleBorder(
                                                         borderRadius:
                                                             BorderRadius
-                                                                .circular(8),
+                                                                .circular(12),
                                                       ),
+                                                      backgroundColor:
+                                                          const Color(
+                                                              0xFF2F9C95),
+                                                      disabledBackgroundColor:
+                                                          Colors.grey,
                                                     ),
-                                                    onPressed: _isFormValid
-                                                        ? () {
-                                                            Navigator.push(
-                                                              context,
-                                                              PageRouteBuilder(
-                                                                pageBuilder: (context,
-                                                                        animation,
-                                                                        secondaryAnimation) =>
-                                                                    const HomePage(),
-                                                                transitionsBuilder:
-                                                                    (context,
-                                                                        animation,
-                                                                        secondaryAnimation,
-                                                                        child) {
-                                                                  const begin =
-                                                                      Offset(
-                                                                          0.0,
-                                                                          -1.0);
-                                                                  const end =
-                                                                      Offset
-                                                                          .zero;
-                                                                  const curve =
-                                                                      Curves
-                                                                          .easeInOut;
-
-                                                                  var tween = Tween(
-                                                                          begin:
-                                                                              begin,
-                                                                          end:
-                                                                              end)
-                                                                      .chain(CurveTween(
-                                                                          curve:
-                                                                              curve));
-                                                                  var offsetAnimation =
-                                                                      animation
-                                                                          .drive(
-                                                                              tween);
-
-                                                                  return FadeTransition(
-                                                                    opacity:
-                                                                        animation,
-                                                                    child:
-                                                                        SlideTransition(
-                                                                      position:
-                                                                          offsetAnimation,
-                                                                      child:
-                                                                          child,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                transitionDuration:
-                                                                    const Duration(
-                                                                        milliseconds:
-                                                                            400),
-                                                              ),
-                                                            );
-                                                          }
-                                                        : null,
-                                                    child: Text(
-                                                      'continue'.tr(),
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
+                                                    child: _isLoading
+                                                        ? const SizedBox(
+                                                            width: 24,
+                                                            height: 24,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                              strokeWidth: 2,
+                                                            ),
+                                                          )
+                                                        : Text(
+                                                            'submit'.tr(),
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
                                                   ),
                                                 ),
                                               ],

@@ -14,6 +14,28 @@ The CI/CD pipelines for Tawssil app consist of three main files:
 - `backend_ci.yml`: For testing, building, and deploying the backend (Django) / لاختبار وبناء ونشر الواجهة الخلفية (Django)
 - `mobile_deployment.yml`: For deploying the app to app stores (Play Store / App Store) / لنشر التطبيق على متاجر التطبيقات (Play Store / App Store)
 
+## Enhanced Features / الميزات المحسّنة
+
+Our CI/CD pipeline now includes:
+
+تتضمن خطوط أنابيب CI/CD الخاصة بنا الآن:
+
+1. **Security Scanning / فحص الأمان**
+   - OWASP Dependency-Check for frontend / فحص التبعيات لواجهة المستخدم
+   - Safety and Bandit tools for backend / أدوات Safety و Bandit للواجهة الخلفية
+
+2. **Performance Testing / اختبار الأداء**
+   - Locust performance testing for backend / اختبار الأداء باستخدام Locust للواجهة الخلفية
+   - Automated reports for review / تقارير آلية للمراجعة
+
+3. **Phased Rollout / النشر التدريجي**
+   - Controlled percentage rollout for Android / نشر تدريجي محكوم لأجهزة Android
+   - Phased release for iOS / إصدار تدريجي لأجهزة iOS
+
+4. **Validation / التحقق**
+   - Version format validation / التحقق من تنسيق الإصدار
+   - Automated testing before deployment / اختبار آلي قبل النشر
+
 ## Required Secrets / الأسرار المطلوبة
 
 The following secrets must be added to GitHub Repository Secrets:
@@ -48,11 +70,31 @@ Testing and building pipelines run automatically when:
 - دفع التغييرات إلى الفروع الرئيسية (main, master, develop)
 - إنشاء طلب سحب (pull request) إلى هذه الفروع
 
+### Security Report Review / مراجعة تقارير الأمان
+
+To review security reports:
+1. Go to the "Actions" tab in GitHub / انتقل إلى تبويب "Actions" في GitHub
+2. Select the most recent workflow run / اختر أحدث تشغيل لسير العمل
+3. Download artifacts from the "Artifacts" section / قم بتنزيل المخرجات من قسم "Artifacts"
+4. Review the HTML reports for security issues / راجع تقارير HTML للمشاكل الأمنية
+
+### Performance Testing / اختبارات الأداء
+
+Performance reports are generated automatically and uploaded as artifacts. Review them to:
+- Identify API bottlenecks / تحديد نقاط الاختناق في واجهة API
+- Monitor response times / مراقبة أوقات الاستجابة
+- Plan optimizations / تخطيط التحسينات
+
+يتم إنشاء تقارير الأداء تلقائيًا وتحميلها كمخرجات. راجعها من أجل:
+- تحديد نقاط الاختناق في واجهة API
+- مراقبة أوقات الاستجابة
+- تخطيط التحسينات
+
 ### Mobile App Deployment / نشر التطبيق المحمول
 
-To deploy the app to app stores:
+To deploy the app to app stores with phased rollout:
 
-لنشر التطبيق على متاجر التطبيقات:
+لنشر التطبيق على متاجر التطبيقات مع النشر التدريجي:
 
 1. Go to the "Actions" tab in GitHub / انتقل إلى تبويب "Actions" في GitHub
 2. Select "Mobile Deployment" / اختر "Mobile Deployment"
@@ -60,20 +102,35 @@ To deploy the app to app stores:
 4. Enter:
    - App version (e.g., 1.0.0) / إصدار التطبيق (مثل: 1.0.0)
    - Release notes / ملاحظات الإصدار
+   - Rollout percentage (default 10%) / نسبة النشر التدريجي (الافتراضي 10%)
+
+## Setting Up Integration Tests / إعداد اختبارات التكامل
+
+### For Flutter / لـ Flutter:
+1. Create an `integration_test` directory in the project / قم بإنشاء مجلد `integration_test` في المشروع
+2. Add integration test files / أضف ملفات اختبار التكامل
+3. Tests will automatically run before deployment / سيتم تشغيل الاختبارات تلقائيًا قبل النشر
+
+### For Backend / للواجهة الخلفية:
+1. Create performance test scenarios in `locustfile.py` / قم بإنشاء سيناريوهات اختبار الأداء في `locustfile.py`
+2. Add more test endpoints as needed / أضف نقاط نهاية اختبار إضافية حسب الحاجة
 
 ## Tips and Guidelines / نصائح وإرشادات
 
 ### For Frontend Tests / لاختبارات الواجهة الأمامية:
 - Define tests in the `test/` folder within the Flutter project / تأكد من تعريف الاختبارات في مجلد `test/` داخل مشروع Flutter
 - Consider using Test-Driven Development (TDD) / ضع في اعتبارك استخدام نهج التطوير المدفوع بالاختبار (TDD)
+- For UI tests, use the `integration_test` folder / لاختبارات واجهة المستخدم، استخدم مجلد `integration_test`
 
 ### For Backend Tests / لاختبارات الواجهة الخلفية:
 - Define tests in `tests.py` files within Django apps / تأكد من تعريف الاختبارات في ملفات `tests.py` داخل تطبيقات Django
 - Use an independent test database / استخدم قاعدة بيانات اختبار مستقلة
+- Monitor code coverage reports / راقب تقارير تغطية الكود
 
 ### For Deployment / للنشر:
 - Always check deployment settings in `Fastfile` for both Android and iOS / تحقق دائمًا من إعدادات النشر في ملفات `Fastfile` لكل من Android و iOS
 - Thoroughly test the app before actual deployment / تأكد من اختبار التطبيق جيدًا قبل النشر الفعلي
+- Use phased rollouts to minimize risk / استخدم النشر التدريجي لتقليل المخاطر
 
 ## Troubleshooting / استكشاف الأخطاء وإصلاحها
 
@@ -82,6 +139,7 @@ If the CI/CD process fails, check:
 2. Validity of secrets and keys / صلاحية الأسرار والمفاتيح
 3. File and path configuration in YAML files / تكوين الملفات والمسارات في ملفات YAML
 4. Order of execution steps in pipelines / ترتيب تنفيذ الخطوات في خطوط الأنابيب
+5. Downloaded artifacts for more detailed logs / قم بتنزيل المخرجات للحصول على سجلات أكثر تفصيلاً
 
 ## Security Best Practices / أفضل ممارسات الأمان
 
@@ -89,11 +147,17 @@ If the CI/CD process fails, check:
 2. Rotate secrets periodically / قم بتغيير الأسرار بشكل دوري
 3. Use limited-scope access tokens / استخدم رموز وصول محدودة النطاق
 4. Review workflow permissions in GitHub / راجع أذونات سير العمل في GitHub
+5. Review security scan reports regularly / راجع تقارير فحص الأمان بانتظام
 
 ## Continuous Improvement / التحسين المستمر
 
-Consider implementing:
+Our CI/CD pipeline includes:
 1. Security scanning for vulnerabilities / فحص الأمان للثغرات
 2. Performance testing in the pipeline / اختبار الأداء في خط الأنابيب
 3. Automated UI testing / اختبار واجهة المستخدم الآلي
-4. Parallel testing to speed up the pipeline / الاختبار المتوازي لتسريع خط الأنابيب 
+4. Phased rollout deployment / نشر تدريجي للتطبيق
+
+Future enhancements to consider:
+1. A/B testing integration / دمج اختبارات A/B
+2. Automated visual regression testing / اختبار تراجع بصري آلي
+3. Expanded integration test coverage / توسيع تغطية اختبار التكامل 

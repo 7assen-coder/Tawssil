@@ -26,30 +26,47 @@ SECRET_KEY = 'django-insecure-59^w4!-py5j9=7__(nd053nyq2s+gcu9txmjzyhz0*^r8zdd&8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    '10.0.2.2',  # للوصول من محاكي Android
+    '192.168.1.5',  # مثال عنوان IP محلي
+    '*',  # يسمح بالوصول من أي مضيف - استخدم هذا فقط في بيئة التطوير
+]
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    # تطبيقات Django الافتراضية
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',
-    'corsheaders',
+    
+    # تطبيقات المشروع
     'utilisateurs',
-    'transport',
-    'vehicules',
     'paiements',
-    'notifications',
+    'vehicules',
+    
+    # التطبيقات الجديدة
+    'commandes',
+    'produits',
+    'evaluations',
+    'messaging',
+    
+    # تطبيقات أخرى
+    'rest_framework',
+    'rest_framework.authtoken',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -137,6 +154,14 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# نموذج المستخدم المخصص
+AUTH_USER_MODEL = 'utilisateurs.Utilisateur'
+
+# إعدادات الطلب للتحقق من الهوية
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -153,6 +178,42 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
+    "http://localhost:3000",  # للتطوير المحلي
+    "http://10.0.2.2:8000",   # للوصول من محاكي Android
+    "http://192.168.1.5:8000", # نموذج IP محلي
+]
+
+# تعديل إضافي لإعدادات CORS
+CORS_ORIGIN_ALLOW_ALL = True  # السماح بالوصول من أي مصدر (مهم للتطوير)
+CORS_ALLOW_CREDENTIALS = True
+
+# إضافة عناوين تطبيق Flutter
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://10.0.2.2:8000",
+]
+
+# أضف المزيد من الإعدادات للسماح بالطلبات من تطبيق Flutter
+CORS_ALLOW_METHODS = [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
 ]
 
 # JWT settings
@@ -170,4 +231,61 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
     'USER_AUTHENTICATION_RULE': 'utilisateurs.authentication.custom_user_authentication_rule',
+}
+
+# Email settings
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'sidahmedmhd07@gmail.com'
+EMAIL_HOST_PASSWORD = 'pjpyotqctctfmhrh'
+DEFAULT_FROM_EMAIL = 'sidahmedmhd07@gmail.com'
+# استخدام وضع تصحيح أخطاء البريد الإلكتروني
+EMAIL_DEBUG = True
+
+# احتفظ بهذه الإعدادات معطلة الآن
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # يعرض الرسائل في الطرفية بدلًا من إرسالها فعليًا
+# DEFAULT_FROM_EMAIL = 'otpservice@tawssil.com'  # لا يهم في وضع العرض في الطرفية
+
+# SendGrid settings - معطل عمداً لتجنب الازدواجية في إرسال البريد
+SENDGRID_API_KEY = ''  # تعطيل SendGrid بتركه فارغاً
+
+# Twilio settings
+# في وضع التطوير، يمكن تعيين القيم إلى قيم وهمية أو إلى 'YOUR_TWILIO_SID'
+# بهذه الطريقة ستعمل خاصية التطوير التي تعرض الرمز في السجلات بدلاً من إرساله
+TWILIO_ACCOUNT_SID = 'AC450ecc6390aa2e96d81b9f10213b8d01'  # قم بتغييرها إلى SID الحقيقي في الإنتاج
+TWILIO_AUTH_TOKEN = '6e73473465a21bcedbe2c14f31a4be07'    # قم بتغييرها إلى رمز المصادقة الحقيقي في الإنتاج
+TWILIO_PHONE_NUMBER = '+222 41824343'      # قم بتغييرها إلى رقم هاتف Twilio الحقيقي في الإنتاج
+
+# Logging settings
+# تكوين السجلات للتحكم في مستوى التفاصيل
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'utilisateurs': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
 }

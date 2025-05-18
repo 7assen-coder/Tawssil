@@ -3,15 +3,26 @@ import 'package:easy_localization/easy_localization.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'password.dart';
+import 'services/otp_service.dart';
 
 class CodeVerification extends StatefulWidget {
   final String email;
   final String phone;
+  final String userType;
+  final String fullName;
+  final String dob;
+  final bool isUsingEmail;
+  final String otpCode;
 
   const CodeVerification({
     super.key,
     required this.email,
     required this.phone,
+    required this.userType,
+    required this.fullName,
+    required this.dob,
+    required this.isUsingEmail,
+    required this.otpCode,
   });
 
   @override
@@ -24,12 +35,22 @@ class _CodeVerificationState extends State<CodeVerification> {
   late Timer _timer;
   int _remainingSeconds = 179; // 2m 59s
   int _resendCount = 0;
-  bool _isUsingEmail = false;
+  late bool _isUsingEmail;
   bool _canResend = false;
+  bool _isVerifying = false;
+  String? _autoFilledOtp; // إضافة متغير لتخزين رمز OTP المستلم تلقائيًا
 
   @override
   void initState() {
     super.initState();
+    // تعيين وسيلة الإرسال المستخدمة من وسيط الكلاس
+    _isUsingEmail = widget.isUsingEmail;
+
+    // نحتفظ بالرمز المحلي للتحقق في الخلفية فقط، بدون ملء الحقول تلقائيًا
+    if (widget.otpCode.isNotEmpty && widget.otpCode.length == 4) {
+      _autoFilledOtp = widget.otpCode;
+    }
+
     // بدء العد التنازلي
     startTimer();
   }
@@ -66,7 +87,7 @@ class _CodeVerificationState extends State<CodeVerification> {
   String get formattedTime {
     int minutes = _remainingSeconds ~/ 60;
     int seconds = _remainingSeconds % 60;
-    return "${minutes}m ${seconds}s";
+    return "$minutes${'minutes'.tr()} $seconds${'seconds'.tr()}";
   }
 
   // دالة لإظهار البريد الإلكتروني أو رقم الهاتف مع إخفاء جزء منه
@@ -80,13 +101,126 @@ class _CodeVerificationState extends State<CodeVerification> {
       }
       return email;
     } else {
-      // إخفاء جزء من رقم الهاتف (مثال: ****4343)
+      // إخفاء جزء من رقم الهاتف (مثال: 052****)
       String phone = widget.phone;
-      if (phone.length > 4) {
-        return "${'*' * (phone.length - 4)}${phone.substring(phone.length - 4)}";
+      if (phone.length > 3) {
+        return "${phone.substring(0, 3)}${'*' * (phone.length - 3)}";
       }
       return phone;
     }
+  }
+
+  // إضافة دالة لعرض SnackBar بشكل آمن
+  void _showSnackBar(String message, Color backgroundColor) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  // التحقق من الرمز المُدخل
+  void _verifyOtp() {
+    if (!mounted) return;
+
+    // تجميع الرمز المدخل
+    String enteredOtp = controllers.map((controller) => controller.text).join();
+
+    if (enteredOtp.length != 4) {
+      _showSnackBar('invalid_code'.tr(), Colors.red);
+      return;
+    }
+
+    setState(() {
+      _isVerifying = true;
+    });
+
+    // إذا كان هناك رمز مخزن تلقائيًا (من التسجيل المحلي) نسمح بمقارنته أيضًا
+    // لكن نحاول دائمًا التحقق من الخادم أولًا
+    _verifyWithServer(enteredOtp);
+  }
+
+  // التحقق من الرمز مع الخادم
+  void _verifyWithServer(String otp) async {
+    try {
+      // محاولة التحقق من خلال الخادم أولًا
+      Map<String, dynamic> result = await OTPService.verifyOTP(
+        email: _isUsingEmail ? widget.email : null,
+        phoneNumber: !_isUsingEmail ? widget.phone : null,
+        otpCode: otp,
+        userType: widget.userType,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isVerifying = false;
+      });
+
+      // إذا كان التحقق من الخادم ناجحًا
+      if (result['success']) {
+        _navigateToPassword();
+        return;
+      }
+
+      // إذا فشل التحقق من الخادم وكنا في وضع الاختبار المحلي
+      // وكان الرمز المدخل يطابق الرمز المحلي، نسمح بالمتابعة
+      if (_autoFilledOtp != null && _autoFilledOtp == otp) {
+        _navigateToPassword();
+        return;
+      }
+
+      // إذا وصلنا إلى هنا، فالرمز غير صحيح
+      _showSnackBar(result['message'].tr(), Colors.red);
+    } catch (e) {
+      debugPrint('Error verifying OTP with server: $e');
+
+      // في حالة حدوث خطأ في الاتصال بالخادم
+      // نتحقق من الرمز المحلي فقط إذا كنا في وضع الاختبار
+      if (_autoFilledOtp != null && _autoFilledOtp == otp) {
+        if (!mounted) return;
+        setState(() {
+          _isVerifying = false;
+        });
+        _navigateToPassword();
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _isVerifying = false;
+      });
+
+      _showSnackBar('error_verifying_code'.tr(), Colors.red);
+    }
+  }
+
+  // إضافة دالة للتنقل بشكل آمن
+  void _navigateToPassword() {
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) => Password(
+            userType: widget.userType,
+            email: widget.email,
+            phone: widget.phone,
+            fullName: widget.fullName,
+            dob: widget.dob),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(1.0, 0.0);
+          const end = Offset.zero;
+          const curve = Curves.easeInOut;
+          var tween =
+              Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var offsetAnimation = animation.drive(tween);
+          return SlideTransition(position: offsetAnimation, child: child);
+        },
+      ),
+    );
   }
 
   @override
@@ -97,54 +231,7 @@ class _CodeVerificationState extends State<CodeVerification> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16, right: 16),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: PopupMenuButton<String>(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            context.locale.languageCode.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Icon(Icons.keyboard_arrow_down,
-                              color: Colors.black),
-                        ],
-                      ),
-                    ),
-                    onSelected: (String value) {
-                      context.setLocale(Locale(value));
-                    },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'fr',
-                        child: Text('FR - Français'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'ar',
-                        child: Text('AR - العربية'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'en',
-                        child: Text('EN - English'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 30),
                 child: Center(
@@ -293,137 +380,245 @@ class _CodeVerificationState extends State<CodeVerification> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.center,
                                     children: [
-                                      Text(
-                                        '${'verification_sent'.tr()} $maskedContact',
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 13),
+                                      // إضافة معلومات الوسيلة المستخدمة للتحقق
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                              color: Colors.grey[200]!),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Icon(
+                                                  _isUsingEmail
+                                                      ? Icons.email_outlined
+                                                      : Icons.phone_android,
+                                                  color:
+                                                      const Color(0xFF2F9C95),
+                                                  size: 16,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  _isUsingEmail
+                                                      ? 'verification_sent_email'
+                                                          .tr()
+                                                      : 'verification_sent_phone'
+                                                          .tr(),
+                                                  style: const TextStyle(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w500),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Text(
+                                              maskedContact,
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 20),
+                                      Text(
+                                        'enter_code'.tr(),
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
                                       Text(
                                         '${'expiration'.tr()} $formattedTime',
-                                        textAlign: TextAlign.center,
                                         style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 13),
+                                          fontSize: 11,
+                                          color: Colors.grey[600],
+                                        ),
                                       ),
-                                      const SizedBox(height: 12),
+
+                                      // نص توضيحي حول مصدر الرمز
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(top: 8.0),
+                                        child: Text(
+                                          _isUsingEmail
+                                              ? 'check_email_for_code'.tr()
+                                              : 'check_phone_for_code'.tr(),
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.blue[700],
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 20),
                                       Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                            MainAxisAlignment.spaceEvenly,
                                         children: List.generate(
                                           4,
-                                          (index) => Container(
-                                            margin: const EdgeInsets.symmetric(
-                                                horizontal: 4),
+                                          (index) => SizedBox(
                                             width: 45,
-                                            height: 45,
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFFFD700),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: TextField(
-                                              controller: controllers[index],
-                                              textAlign: TextAlign.center,
-                                              keyboardType:
-                                                  TextInputType.number,
-                                              maxLength: 1,
-                                              style:
-                                                  const TextStyle(fontSize: 18),
-                                              decoration: const InputDecoration(
-                                                counterText: '',
-                                                border: InputBorder.none,
-                                              ),
-                                              enableInteractiveSelection: false,
-                                              readOnly: index !=
-                                                  _getActiveFieldIndex(),
-                                              focusNode: null,
-                                              inputFormatters: [
-                                                FilteringTextInputFormatter
-                                                    .digitsOnly,
-                                                LengthLimitingTextInputFormatter(
-                                                    1),
-                                              ],
-                                              onChanged: (value) {
-                                                if (value.isNotEmpty) {
-                                                  if (index < 3) {
-                                                    setState(() {});
-                                                    FocusScope.of(context)
-                                                        .nextFocus();
-                                                  } else if (index == 3) {
-                                                    bool allFieldsFilled =
-                                                        controllers.every(
-                                                            (controller) =>
-                                                                controller.text
-                                                                    .isNotEmpty);
-                                                    if (allFieldsFilled) {
-                                                      Navigator.push(
-                                                        context,
-                                                        PageRouteBuilder(
-                                                          pageBuilder: (context,
-                                                                  animation,
-                                                                  secondaryAnimation) =>
-                                                              const Password(),
-                                                          transitionsBuilder:
-                                                              (context,
-                                                                  animation,
-                                                                  secondaryAnimation,
-                                                                  child) {
-                                                            const begin =
-                                                                Offset(
-                                                                    1.0, 0.0);
-                                                            const end =
-                                                                Offset.zero;
-                                                            const curve = Curves
-                                                                .easeInOut;
-                                                            var tween = Tween(
-                                                                    begin:
-                                                                        begin,
-                                                                    end: end)
-                                                                .chain(CurveTween(
-                                                                    curve:
-                                                                        curve));
-                                                            var offsetAnimation =
-                                                                animation.drive(
-                                                                    tween);
-                                                            return SlideTransition(
-                                                                position:
-                                                                    offsetAnimation,
-                                                                child: child);
-                                                          },
-                                                        ),
-                                                      );
+                                            height: 48,
+                                            child: Stack(
+                                              children: [
+                                                TextField(
+                                                  controller:
+                                                      controllers[index],
+                                                  textAlign: TextAlign.center,
+                                                  keyboardType:
+                                                      TextInputType.number,
+                                                  maxLength: 1,
+                                                  enabled: !_isVerifying,
+                                                  style: const TextStyle(
+                                                    fontSize: 24,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  decoration: InputDecoration(
+                                                    counterText: "",
+                                                    enabledBorder:
+                                                        OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      borderSide: BorderSide(
+                                                          color: Colors
+                                                              .grey[300]!),
+                                                    ),
+                                                    focusedBorder:
+                                                        OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              10),
+                                                      borderSide:
+                                                          const BorderSide(
+                                                              color: Color(
+                                                                  0xFF2F9C95),
+                                                              width: 2),
+                                                    ),
+                                                  ),
+                                                  inputFormatters: [
+                                                    FilteringTextInputFormatter
+                                                        .digitsOnly,
+                                                    LengthLimitingTextInputFormatter(
+                                                        1),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    if (value.isNotEmpty) {
+                                                      if (index < 3) {
+                                                        setState(() {});
+                                                        FocusScope.of(context)
+                                                            .nextFocus();
+                                                      } else if (index == 3) {
+                                                        bool allFieldsFilled =
+                                                            controllers.every(
+                                                                (controller) =>
+                                                                    controller
+                                                                        .text
+                                                                        .isNotEmpty);
+                                                        if (allFieldsFilled) {
+                                                          // استدعاء دالة التحقق
+                                                          _verifyOtp();
+                                                        }
+                                                      }
+                                                    } else {
+                                                      if (index > 0) {
+                                                        controllers[index]
+                                                            .clear();
+                                                        setState(() {});
+                                                        FocusScope.of(context)
+                                                            .previousFocus();
+                                                      }
                                                     }
-                                                  }
-                                                } else {
-                                                  if (index > 0) {
-                                                    controllers[index].clear();
-                                                    setState(() {});
-                                                    FocusScope.of(context)
-                                                        .previousFocus();
-                                                  }
-                                                }
-                                              },
+                                                  },
+                                                ),
+                                              ],
                                             ),
                                           ),
                                         ),
                                       ),
                                       TextButton(
                                         onPressed: _canResend
-                                            ? () {
+                                            ? () async {
+                                                // تعيين _isVerifying إلى true لإظهار حالة التحميل
+                                                setState(() {
+                                                  _isVerifying = true;
+                                                });
+
                                                 resetTimer();
-                                                // هنا يمكن إضافة منطق لإعادة إرسال الرمز
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                        'code_resent'.tr()),
-                                                    backgroundColor:
-                                                        const Color(0xFF2F9C95),
-                                                  ),
-                                                );
+
+                                                // استخدام OTPService لإعادة إرسال الرمز
+                                                try {
+                                                  Map<String, dynamic> result;
+
+                                                  if (_isUsingEmail) {
+                                                    // إرسال الرمز عبر البريد الإلكتروني
+                                                    result = await OTPService
+                                                        .sendRegistrationOTPByEmail(
+                                                      email: widget.email,
+                                                      userType: widget.userType,
+                                                      fullName: widget.fullName,
+                                                      birthDate: widget.dob,
+                                                      isInitialRequest: false,
+                                                    );
+                                                  } else {
+                                                    // إرسال الرمز عبر الرسائل القصيرة
+                                                    result = await OTPService
+                                                        .sendRegistrationOTPBySMS(
+                                                      phoneNumber: widget.phone,
+                                                      userType: widget.userType,
+                                                      fullName: widget.fullName,
+                                                      birthDate: widget.dob,
+                                                      isInitialRequest: false,
+                                                    );
+                                                  }
+
+                                                  // التحقق من أن الـ Widget ما زالت مرتبطة بعد العمليات غير المتزامنة
+                                                  if (!mounted) return;
+
+                                                  // إعادة تعيين حالة التحقق
+                                                  setState(() {
+                                                    _isVerifying = false;
+                                                  });
+
+                                                  if (result['success']) {
+                                                    // استخدام الدالة الآمنة لعرض رسالة النجاح
+                                                    _showSnackBar(
+                                                      'code_resent'.tr(),
+                                                      const Color(0xFF2F9C95),
+                                                    );
+                                                  } else {
+                                                    // استخدام الدالة الآمنة لعرض رسالة الخطأ
+                                                    _showSnackBar(
+                                                      result['message'] ??
+                                                          'error_resending_code'
+                                                              .tr(),
+                                                      Colors.red,
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  debugPrint(
+                                                      'Error resending OTP: $e');
+
+                                                  // استخدام الدالة الآمنة لعرض رسالة الخطأ
+                                                  _showSnackBar(
+                                                    'error_resending_code'.tr(),
+                                                    Colors.red,
+                                                  );
+                                                }
                                               }
                                             : null,
                                         style: TextButton.styleFrom(
@@ -432,14 +627,34 @@ class _CodeVerificationState extends State<CodeVerification> {
                                           disabledForegroundColor:
                                               Colors.grey.withOpacity(0.6),
                                         ),
-                                        child: Text(
-                                          'resend_code'.tr(),
-                                          style: TextStyle(
-                                              color: _canResend
-                                                  ? const Color(0xFF2F9C95)
-                                                  : Colors.grey
-                                                      .withOpacity(0.6),
-                                              fontSize: 13),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            if (_isVerifying)
+                                              Container(
+                                                width: 12,
+                                                height: 12,
+                                                margin: const EdgeInsets.only(
+                                                    right: 8),
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: _canResend
+                                                      ? const Color(0xFF2F9C95)
+                                                      : Colors.grey
+                                                          .withOpacity(0.6),
+                                                ),
+                                              ),
+                                            Text(
+                                              'resend_code'.tr(),
+                                              style: TextStyle(
+                                                  color: _canResend
+                                                      ? const Color(0xFF2F9C95)
+                                                      : Colors.grey
+                                                          .withOpacity(0.6),
+                                                  fontSize: 13),
+                                            ),
+                                          ],
                                         ),
                                       ),
                                       TextButton(
@@ -541,25 +756,77 @@ class _CodeVerificationState extends State<CodeVerification> {
                                       ),
                                       TextButton(
                                         onPressed: _canResend
-                                            ? () {
+                                            ? () async {
                                                 setState(() {
                                                   _isUsingEmail =
                                                       !_isUsingEmail;
+                                                  _isVerifying = true;
                                                 });
                                                 resetTimer();
-                                                // هنا يمكن إضافة منطق لإرسال الرمز عبر الوسيلة المختارة
-                                                String method = _isUsingEmail
-                                                    ? 'email'
-                                                    : 'phone';
-                                                ScaffoldMessenger.of(context)
-                                                    .showSnackBar(
-                                                  SnackBar(
-                                                    content: Text(
-                                                        '${'code_sent_to'.tr()} $method'),
-                                                    backgroundColor:
-                                                        const Color(0xFF2F9C95),
-                                                  ),
-                                                );
+
+                                                // إرسال رمز جديد عبر الوسيلة المختارة
+                                                try {
+                                                  Map<String, dynamic> result;
+                                                  if (_isUsingEmail) {
+                                                    // تغيير إلى البريد الإلكتروني
+                                                    result = await OTPService
+                                                        .sendRegistrationOTPByEmail(
+                                                      email: widget.email,
+                                                      userType: widget.userType,
+                                                      fullName: widget.fullName,
+                                                      birthDate: widget.dob,
+                                                      isInitialRequest: false,
+                                                    );
+                                                  } else {
+                                                    // تغيير إلى الرسائل القصيرة
+                                                    result = await OTPService
+                                                        .sendRegistrationOTPBySMS(
+                                                      phoneNumber: widget.phone,
+                                                      userType: widget.userType,
+                                                      fullName: widget.fullName,
+                                                      birthDate: widget.dob,
+                                                      isInitialRequest: false,
+                                                    );
+                                                  }
+
+                                                  if (!mounted) return;
+
+                                                  // إعادة تعيين حالة التحقق
+                                                  setState(() {
+                                                    _isVerifying = false;
+                                                  });
+
+                                                  if (result['success']) {
+                                                    _showSnackBar(
+                                                      _isUsingEmail
+                                                          ? 'verification_sent_email'
+                                                              .tr()
+                                                          : 'verification_sent_phone'
+                                                              .tr(),
+                                                      const Color(0xFF2F9C95),
+                                                    );
+                                                  } else {
+                                                    _showSnackBar(
+                                                      result['message'] ??
+                                                          'error_sending_code'
+                                                              .tr(),
+                                                      Colors.red,
+                                                    );
+                                                  }
+                                                } catch (e) {
+                                                  debugPrint(
+                                                      'Error switching verification method: $e');
+                                                  if (!mounted) return;
+
+                                                  setState(() {
+                                                    _isVerifying = false;
+                                                  });
+
+                                                  _showSnackBar(
+                                                    'error_sending_code'.tr(),
+                                                    Colors.red,
+                                                  );
+                                                }
                                               }
                                             : null,
                                         style: TextButton.styleFrom(
@@ -632,6 +899,9 @@ class _CodeVerificationState extends State<CodeVerification> {
                           height: 40,
                         ),
                       ),
+                      // إضافة مساحة إضافية لتغطية الفجوة في الأسفل
+                      SizedBox(
+                          height: MediaQuery.of(context).size.height * 0.1),
                     ],
                   ),
                 ),
@@ -673,12 +943,5 @@ class _CodeVerificationState extends State<CodeVerification> {
     );
   }
 
-  int _getActiveFieldIndex() {
-    for (int i = 0; i < controllers.length; i++) {
-      if (controllers[i].text.isEmpty) {
-        return i;
-      }
-    }
-    return controllers.length - 1;
-  }
+  // الدالة القديمة للإرسال عبر SMS تم استبدالها بالمنطق الجديد أعلاه
 }

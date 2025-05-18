@@ -4,7 +4,20 @@ import 'selfie.dart';
 import 'newaccount.dart';
 
 class Password extends StatefulWidget {
-  const Password({super.key});
+  final String userType;
+  final String email;
+  final String phone;
+  final String fullName;
+  final String dob;
+
+  const Password({
+    super.key,
+    required this.userType,
+    required this.email,
+    required this.phone,
+    required this.fullName,
+    required this.dob,
+  });
 
   @override
   State<Password> createState() => _PasswordState();
@@ -66,6 +79,8 @@ class _PasswordState extends State<Password> {
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF2F9C95),
+        extendBody: true,
+        extendBodyBehindAppBar: true,
         body: SafeArea(
           child: Stack(
             children: [
@@ -82,54 +97,7 @@ class _PasswordState extends State<Password> {
               SingleChildScrollView(
                 child: Column(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16, right: 16),
-                      child: Align(
-                        alignment: Alignment.topRight,
-                        child: PopupMenuButton<String>(
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  context.locale.languageCode.toUpperCase(),
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const Icon(Icons.keyboard_arrow_down,
-                                    color: Colors.black),
-                              ],
-                            ),
-                          ),
-                          onSelected: (String value) {
-                            context.setLocale(Locale(value));
-                          },
-                          itemBuilder: (BuildContext context) =>
-                              <PopupMenuEntry<String>>[
-                            const PopupMenuItem<String>(
-                              value: 'fr',
-                              child: Text('FR - Français'),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'ar',
-                              child: Text('AR - العربية'),
-                            ),
-                            const PopupMenuItem<String>(
-                              value: 'en',
-                              child: Text('EN - English'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    const SizedBox(height: 16),
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 30),
                       child: Center(
@@ -147,8 +115,12 @@ class _PasswordState extends State<Password> {
                         borderRadius:
                             BorderRadius.vertical(top: Radius.circular(40)),
                       ),
+                      padding: const EdgeInsets.only(bottom: 16),
+                      constraints: BoxConstraints(
+                        minHeight: MediaQuery.of(context).size.height - 200,
+                      ),
                       child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
@@ -519,7 +491,7 @@ class _PasswordState extends State<Password> {
                                                                 milliseconds:
                                                                     1500), () {
                                                           if (mounted) {
-                                                            _navigateToSelfieScreen();
+                                                            _navigateToSelfie();
                                                           }
                                                         });
                                                       }
@@ -538,7 +510,7 @@ class _PasswordState extends State<Password> {
                                                   ),
                                                   child: Center(
                                                     child: Text(
-                                                      'continue'.tr(),
+                                                      'continue_button'.tr(),
                                                       style: const TextStyle(
                                                         color: Colors.white,
                                                         fontWeight:
@@ -560,6 +532,12 @@ class _PasswordState extends State<Password> {
                                         height: 40,
                                       ),
                                     ),
+                                    // إضافة مساحة إضافية لتغطية الفجوة في الأسفل
+                                    SizedBox(
+                                        height: MediaQuery.of(context)
+                                                .padding
+                                                .bottom +
+                                            20),
                                   ],
                                 ),
                               ],
@@ -578,12 +556,18 @@ class _PasswordState extends State<Password> {
     );
   }
 
-  void _navigateToSelfieScreen() {
+  void _navigateToSelfie() {
     Navigator.push(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            const SelfieScreen(),
+        pageBuilder: (context, animation, secondaryAnimation) => Selfie(
+          userType: widget.userType,
+          email: widget.email,
+          phone: widget.phone,
+          fullName: widget.fullName,
+          dob: widget.dob,
+          password: _passwordController.text,
+        ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
@@ -666,7 +650,14 @@ class _PasswordState extends State<Password> {
     // التنقل إلى صفحة إنشاء حساب جديد مع استبدال كامل المكدس (stack)
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const NewAccount()),
+      MaterialPageRoute(
+          builder: (context) => NewAccount(
+                userType: widget.userType,
+                email: widget.email,
+                phone: widget.phone,
+                fullName: widget.fullName,
+                dob: widget.dob,
+              )),
       (route) => false, // إزالة جميع الصفحات السابقة من المكدس
     );
   }

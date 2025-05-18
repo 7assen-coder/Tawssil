@@ -48,6 +48,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-django coverage
       
       - name: Run Migrations
         env:
@@ -56,21 +57,139 @@ jobs:
           DEBUG: 'True'
         run: python manage.py migrate
       
-      - name: Run Tests
+      - name: Run Tests with Coverage
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/tawssil_test
           DJANGO_SECRET_KEY: 'django-insecure-for-testing-only'
           DEBUG: 'True'
-        run: python manage.py test
+        run: |
+          coverage run --source='.' manage.py test
+          coverage xml
+          coverage report
+          
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-report
+          path: tawssil_backend/coverage.xml
       
       - name: Run Linting
         run: |
-          pip install flake8
+          pip install flake8 pylint
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          pylint --disable=all --enable=unused-import,unused-variable tawssil_backend
+
+  security_scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tawssil_backend
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      
+      - name: Run Safety Check
+        run: safety check -r requirements.txt --full-report
+        continue-on-error: true
+      
+      - name: Run Bandit Security Analysis
+        run: bandit -r . -f html -o bandit-report.html
+        continue-on-error: true
+      
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: tawssil_backend/bandit-report.html
+
+  performance_test:
+    name: Performance Testing
+    runs-on: ubuntu-latest
+    needs: test
+    defaults:
+      run:
+        working-directory: tawssil_backend
+    
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tawssil_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install locust
+      
+      - name: Run Django Server for Testing
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/tawssil_test
+          DJANGO_SECRET_KEY: 'django-insecure-for-testing-only'
+          DEBUG: 'True'
+        run: |
+          python manage.py migrate
+          python manage.py runserver &
+          sleep 5
+      
+      - name: Create Locust file if not exists
+        run: |
+          if [ ! -f "locustfile.py" ]; then
+            echo 'from locust import HttpUser, task, between' > locustfile.py
+            echo '' >> locustfile.py
+            echo 'class BasicUser(HttpUser):' >> locustfile.py
+            echo '    wait_time = between(1, 2)' >> locustfile.py
+            echo '' >> locustfile.py
+            echo '    @task' >> locustfile.py
+            echo '    def health_check(self):' >> locustfile.py
+            echo '        self.client.get("/health/")' >> locustfile.py
+          fi
+      
+      - name: Run Performance Tests
+        run: |
+          locust --headless -u 10 -r 1 --host http://localhost:8000 --run-time 30s --html locust-report.html
+        continue-on-error: true
+      
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: tawssil_backend/locust-report.html
 
   build_and_push:
     name: Build and Push Docker Image
-    needs: test
+    needs: [test, security_scan, performance_test]
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
@@ -82,8 +201,8 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKER_HUB_USERNAME }}
-          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Build and Push
         uses: docker/build-push-action@v4
@@ -91,7 +210,7 @@ jobs:
           context: .
           file: ./dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/tawssil-backend:latest
+          tags: ${{ github.repository_owner }}/tawssil-backend:latest
 
   deploy:
     name: Deploy to Production

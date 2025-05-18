@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'code.dart';
+import 'services/auth_service.dart';
 
 class ForgetPassword extends StatefulWidget {
-  const ForgetPassword({super.key});
+  final String userType;
+
+  const ForgetPassword({
+    super.key,
+    required this.userType,
+  });
 
   @override
   State<ForgetPassword> createState() => _ForgetPasswordState();
@@ -15,6 +21,12 @@ class _ForgetPasswordState extends State<ForgetPassword> {
   String selectedMethod = ''; // To track which method was selected
   TextEditingController emailController = TextEditingController();
   TextEditingController phoneController = TextEditingController();
+
+  // إضافة متغير للتحميل
+  bool _isLoading = false;
+
+  // إضافة خدمة المصادقة
+  final AuthService _authService = AuthService();
 
   // Regular expressions for validation
   final RegExp emailRegex = RegExp(r'^[a-zA-Z0-9.]+@[a-zA-Z0-9]+\.[a-zA-Z]+');
@@ -55,6 +67,210 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     }
   }
 
+  // دالة للتحقق من وجود المستخدم قبل إرسال الرمز
+  Future<bool> _verifyUserExists(String identifier, bool isEmail) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    debugPrint('*** بدء التحقق من وجود المستخدم ***');
+    debugPrint('المعرف: $identifier');
+    debugPrint('هل هو بريد إلكتروني؟ $isEmail');
+    debugPrint('نوع المستخدم: ${widget.userType}');
+
+    try {
+      // استخدام النوع المناسب (Client أو Livreur) بناءً على widget.userType
+      String userTypeForApi =
+          widget.userType == 'Livreur' ? 'Livreur' : 'Client';
+
+      debugPrint('نوع المستخدم المُرسل للـ API: $userTypeForApi');
+
+      final result = await _authService.checkUserExists(
+        identifier,
+        isEmail: isEmail,
+        userType: userTypeForApi,
+      );
+
+      // تأكد من أن ال widget لا يزال مُثبت قبل تحديث الحالة
+      if (!mounted) {
+        debugPrint('الحالة غير مُثبتة، إنهاء الدالة');
+        return false;
+      }
+
+      debugPrint('استجابة التحقق من وجود المستخدم: $result');
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (!result['exists']) {
+        // عرض رسالة خطأ للمستخدم - لم يتم العثور على المستخدم
+        String errorMessage = 'user_not_found'.tr();
+
+        if (widget.userType == 'Client') {
+          errorMessage = 'client_not_found'.tr();
+        } else if (widget.userType == 'Livreur') {
+          errorMessage = 'driver_not_found'.tr();
+        }
+
+        debugPrint('المستخدم غير موجود، رسالة الخطأ: $errorMessage');
+        _showErrorDialog(errorMessage);
+        return false;
+      }
+
+      debugPrint('المستخدم موجود، العودة بقيمة true');
+      return true;
+    } catch (e) {
+      // تأكد من أن ال widget لا يزال مُثبت قبل تحديث الحالة
+      if (!mounted) {
+        debugPrint('خطأ: $e، لكن الحالة غير مُثبتة');
+        return false;
+      }
+
+      debugPrint('استثناء في التحقق من وجود المستخدم: $e');
+      setState(() {
+        _isLoading = false;
+      });
+
+      _showErrorDialog('server_error'.tr());
+      return false;
+    }
+  }
+
+  // دالة لعرض رسالة خطأ
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'error_title'.tr(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'ok'.tr(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // دالة للتعامل مع إعادة تعيين كلمة المرور عن طريق البريد الإلكتروني
+  void _processEmailReset(String email) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // التحقق من وجود المستخدم أولاً
+      bool userExists = await _verifyUserExists(email, true);
+
+      // تأكد من أن الحالة لا تزال مثبتة بعد الاستدعاء غير المتزامن
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (userExists) {
+        // الانتقال إلى صفحة إدخال الرمز - سيتم إرسال الرمز تلقائياً في صفحة CodePage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CodePage(
+              email: email,
+              phoneNumber: null,
+              userType: widget.userType,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('server_error'.tr());
+      }
+    }
+  }
+
+  // دالة للتعامل مع إعادة تعيين كلمة المرور عن طريق رقم الهاتف
+  void _processPhoneReset(String phone) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // التحقق من وجود المستخدم أولاً
+      bool userExists = await _verifyUserExists(phone, false);
+
+      // تأكد من أن الحالة لا تزال مثبتة بعد الاستدعاء غير المتزامن
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (userExists) {
+        // الانتقال إلى صفحة إدخال الرمز - سيتم إرسال الرمز تلقائياً في صفحة CodePage
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => CodePage(
+              email: null,
+              phoneNumber: phone,
+              userType: widget.userType,
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        _showErrorDialog('server_error'.tr());
+      }
+    }
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -64,60 +280,28 @@ class _ForgetPasswordState extends State<ForgetPassword> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
+    final screenSize = MediaQuery.of(context).size;
+    final screenHeight = screenSize.height;
 
     return Scaffold(
       backgroundColor: const Color(0xFF2F9C95),
       body: SafeArea(
-        bottom: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Padding(
-              padding: const EdgeInsets.only(top: 16, right: 16),
-              child: Align(
-                alignment: Alignment.topRight,
-                child: PopupMenuButton<String>(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          context.locale.languageCode.toUpperCase(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const Icon(Icons.keyboard_arrow_down,
-                            color: Colors.black),
-                      ],
-                    ),
+              padding: const EdgeInsets.only(top: 16, right: 16, left: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
                   ),
-                  onSelected: (String value) {
-                    context.setLocale(Locale(value));
-                  },
-                  itemBuilder: (BuildContext context) =>
-                      <PopupMenuEntry<String>>[
-                    const PopupMenuItem<String>(
-                      value: 'fr',
-                      child: Text('FR - Français'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'ar',
-                      child: Text('AR - العربية'),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'en',
-                      child: Text('EN - English'),
-                    ),
-                  ],
-                ),
+                  // تم إزالة زر تغيير اللغة من هنا
+                ],
               ),
             ),
             Padding(
@@ -429,48 +613,40 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                                                       const EdgeInsets.only(
                                                           top: 20),
                                                   child: ElevatedButton(
-                                                    onPressed: () {
-                                                      // Validate and send code
-                                                      if (selectedMethod ==
-                                                          'email') {
-                                                        validateEmail(
-                                                            emailController
-                                                                .text);
-                                                        if (emailError !=
-                                                            null) {
-                                                          return;
-                                                        }
-                                                      }
-                                                      if (selectedMethod ==
-                                                          'phone') {
-                                                        validatePhone(
-                                                            phoneController
-                                                                .text);
-                                                        if (phoneError !=
-                                                            null) {
-                                                          return;
-                                                        }
-                                                      }
-
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                            builder:
-                                                                (context) =>
-                                                                    CodePage(
-                                                                      phoneNumber: selectedMethod ==
-                                                                              'phone'
-                                                                          ? phoneController
-                                                                              .text
-                                                                          : null,
-                                                                      email: selectedMethod ==
-                                                                              'email'
-                                                                          ? emailController
-                                                                              .text
-                                                                          : null,
-                                                                    )),
-                                                      );
-                                                    },
+                                                    onPressed: _isLoading
+                                                        ? null
+                                                        : () {
+                                                            // التحقق من صحة المدخلات
+                                                            if (selectedMethod ==
+                                                                'email') {
+                                                              validateEmail(
+                                                                  emailController
+                                                                      .text);
+                                                              if (emailError !=
+                                                                  null) {
+                                                                return;
+                                                              }
+                                                              // تنفيذ العملية بشكل منفصل
+                                                              _processEmailReset(
+                                                                  emailController
+                                                                      .text
+                                                                      .trim());
+                                                            } else if (selectedMethod ==
+                                                                'phone') {
+                                                              validatePhone(
+                                                                  phoneController
+                                                                      .text);
+                                                              if (phoneError !=
+                                                                  null) {
+                                                                return;
+                                                              }
+                                                              // تنفيذ العملية بشكل منفصل
+                                                              _processPhoneReset(
+                                                                  phoneController
+                                                                      .text
+                                                                      .trim());
+                                                            }
+                                                          },
                                                     style: ElevatedButton
                                                         .styleFrom(
                                                       minimumSize: Size(
@@ -486,15 +662,30 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                                                       backgroundColor:
                                                           const Color(
                                                               0xFF2F9C95),
+                                                      disabledBackgroundColor:
+                                                          Colors.grey,
                                                     ),
-                                                    child: Text(
-                                                      'Send_Code'.tr(),
-                                                      style: const TextStyle(
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
+                                                    child: _isLoading
+                                                        ? const SizedBox(
+                                                            width: 20,
+                                                            height: 20,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                              strokeWidth: 2,
+                                                            ),
+                                                          )
+                                                        : Text(
+                                                            'Send_Code'.tr(),
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
                                                   ),
                                                 ),
                                               if (showEmailInput ||

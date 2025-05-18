@@ -3,6 +3,10 @@ import 'package:lottie/lottie.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'newaccount.dart';
 import 'forget_password.dart';
+import 'homeapp.dart';
+import 'driver_homeapp.dart';
+import 'services/auth_service.dart';
+import 'language_selection_dialog.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,9 +18,14 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage>
     with SingleTickerProviderStateMixin {
   bool showLogin = false;
+  bool showLanguageDialog = false;
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   bool _obscureText = true;
+  bool _isLoading = false; // متغير لإظهار حالة التحميل
+
+  // إضافة خدمة المصادقة
+  final AuthService _authService = AuthService();
 
   // إضافة متغيرات للتحكم في المدخلات
   final TextEditingController _emailPhoneController = TextEditingController();
@@ -32,6 +41,10 @@ class _HomePageState extends State<HomePage>
       RegExp(r'^[^@]+@[^@]+\.[^@]+$'); // تحقق بسيط من البريد الإلكتروني
   final RegExp _passwordRegex = RegExp(
       r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$'); // على الأقل 8 أحرف، حرف كبير، حرف صغير، رقم
+
+  // Add new variable for user type selection
+  String _selectedUserType = 'Client'; // القيمة الافتراضية: عميل
+  String _description = ''; // متغير للوصف المتغير حسب نوع الحساب
 
   @override
   void initState() {
@@ -50,12 +63,16 @@ class _HomePageState extends State<HomePage>
     _emailPhoneController.addListener(_validateInputsOnChange);
     _passwordController.addListener(_validateInputsOnChange);
 
-    Future.delayed(const Duration(seconds: 10), () {
+    // تحديد النص الافتراضي حسب نوع الحساب
+    _description = 'description'.tr();
+
+    // عرض حوار اختيار اللغة بعد 6 ثوان
+    Future.delayed(const Duration(seconds: 6), () {
       if (mounted) {
         setState(() {
-          showLogin = true;
+          showLanguageDialog = true;
         });
-        _controller.forward();
+        _showLanguageSelectionDialog();
       }
     });
   }
@@ -133,6 +150,116 @@ class _HomePageState extends State<HomePage>
     });
   }
 
+  // دالة للحصول على رسالة خطأ مناسبة بناءً على نوع الخطأ
+  String _getErrorMessage(Map<String, dynamic> result) {
+    // التحقق مما إذا كانت الرسالة هي مفتاح ترجمة مباشر
+    String message = result['message'] ?? '';
+
+    // قائمة بمفاتيح الترجمة المعروفة
+    List<String> knownTranslationKeys = [
+      'invalid_credentials',
+      'multiple_accounts',
+      'connection_error',
+      'account_not_found',
+      'wrong_password',
+      'account_inactive',
+      'server_error',
+      'try_again',
+      'unknown_error',
+      'login_error',
+      'client_not_found',
+      'driver_not_found',
+      'wrong_account_type',
+      'invalid_account_type'
+    ];
+
+    // إذا كانت الرسالة مفتاح ترجمة معروف، نقوم بإرجاعها للترجمة
+    if (knownTranslationKeys.contains(message)) {
+      return message;
+    }
+
+    // للتوافق مع الاستجابات القديمة
+    final error = result['error'] ?? '';
+
+    if (error.contains('بيانات') || error.contains('تسجيل الدخول')) {
+      return 'invalid_credentials';
+    } else if (error.contains('تعذر') || error.contains('الدعم')) {
+      return 'multiple_accounts';
+    } else if (error.contains('الاتصال') || error.contains('الخادم')) {
+      return 'connection_error';
+    } else if (result['status'] == 'error') {
+      return 'login_error';
+    }
+
+    // الرسالة الافتراضية إذا لم نستطع تحديد نوع الخطأ
+    return 'unknown_error';
+  }
+
+  // عرض مربع حوار الخطأ
+  void _showErrorDialog(String message) {
+    // لإصلاح مشكلة ظهور الرموز غير المفهومة
+    String errorMessage = '';
+
+    // محاولة استخدام الترجمة أولاً
+    if (message.startsWith('invalid_') ||
+        message.contains('error') ||
+        message.contains('login_')) {
+      errorMessage = message.tr();
+    } else {
+      errorMessage = message;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'error_title'.tr(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          errorMessage,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'ok'.tr(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+        contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+        actionsPadding: const EdgeInsets.fromLTRB(0, 0, 24, 16),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isRTL = context.locale.languageCode == 'ar';
@@ -201,54 +328,7 @@ class _HomePageState extends State<HomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16, right: 16),
-                    child: Align(
-                      alignment: Alignment.topRight,
-                      child: PopupMenuButton<String>(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                context.locale.languageCode.toUpperCase(),
-                                style: const TextStyle(
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Icon(Icons.keyboard_arrow_down,
-                                  color: Colors.black),
-                            ],
-                          ),
-                        ),
-                        onSelected: (String value) {
-                          context.setLocale(Locale(value));
-                        },
-                        itemBuilder: (BuildContext context) =>
-                            <PopupMenuEntry<String>>[
-                          const PopupMenuItem<String>(
-                            value: 'fr',
-                            child: Text('FR - Français'),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'ar',
-                            child: Text('AR - العربية'),
-                          ),
-                          const PopupMenuItem<String>(
-                            value: 'en',
-                            child: Text('EN - English'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  const SizedBox(height: 16),
                   const SizedBox(height: 20),
                   // Logo
                   Center(
@@ -285,6 +365,164 @@ class _HomePageState extends State<HomePage>
                           ),
                         ),
                         const SizedBox(height: 20),
+                        // اختيار نوع الحساب
+                        Center(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Text(
+                                'choose_account_type'.tr(),
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 15),
+                              Container(
+                                width: double.infinity,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      spreadRadius: 1,
+                                      blurRadius: 5,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // زر العميل
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _setUserType('Client');
+                                        },
+                                        child: AnimatedContainer(
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 15),
+                                          decoration: BoxDecoration(
+                                            color: _selectedUserType == 'Client'
+                                                ? const Color(0xFF2F9C95)
+                                                : Colors.grey[100],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            boxShadow: _selectedUserType ==
+                                                    'Client'
+                                                ? [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                              0xFF2F9C95)
+                                                          .withOpacity(0.4),
+                                                      spreadRadius: 1,
+                                                      blurRadius: 4,
+                                                      offset:
+                                                          const Offset(0, 2),
+                                                    ),
+                                                  ]
+                                                : null,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Icon(
+                                                Icons.person,
+                                                color: _selectedUserType ==
+                                                        'Client'
+                                                    ? Colors.white
+                                                    : Colors.grey[700],
+                                                size: 32,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'login_as_client'.tr(),
+                                                style: TextStyle(
+                                                  color: _selectedUserType ==
+                                                          'Client'
+                                                      ? Colors.white
+                                                      : Colors.grey[700],
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 15),
+                                    // زر السائق
+                                    Expanded(
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          _setUserType('Livreur');
+                                        },
+                                        child: AnimatedContainer(
+                                          duration:
+                                              const Duration(milliseconds: 300),
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 15),
+                                          decoration: BoxDecoration(
+                                            color:
+                                                _selectedUserType == 'Livreur'
+                                                    ? const Color(0xFF2F9C95)
+                                                    : Colors.grey[100],
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            boxShadow: _selectedUserType ==
+                                                    'Livreur'
+                                                ? [
+                                                    BoxShadow(
+                                                      color: const Color(
+                                                              0xFF2F9C95)
+                                                          .withOpacity(0.4),
+                                                      spreadRadius: 1,
+                                                      blurRadius: 4,
+                                                      offset:
+                                                          const Offset(0, 2),
+                                                    ),
+                                                  ]
+                                                : null,
+                                          ),
+                                          child: Column(
+                                            children: [
+                                              Icon(
+                                                Icons.delivery_dining,
+                                                color: _selectedUserType ==
+                                                        'Livreur'
+                                                    ? Colors.white
+                                                    : Colors.grey[700],
+                                                size: 32,
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'login_as_driver'.tr(),
+                                                style: TextStyle(
+                                                  color: _selectedUserType ==
+                                                          'Livreur'
+                                                      ? Colors.white
+                                                      : Colors.grey[700],
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 25),
                         Align(
                           alignment: isRTL
                               ? Alignment.centerRight
@@ -302,15 +540,18 @@ class _HomePageState extends State<HomePage>
                                 ),
                               ),
                               const SizedBox(height: 10),
-                              Text(
-                                'description'.tr(),
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black54,
-                                  height: 1.5,
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 300),
+                                child: Text(
+                                  _description,
+                                  key: ValueKey<String>(_description),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
+                                    height: 1.5,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign:
-                                    isRTL ? TextAlign.right : TextAlign.left,
                               ),
                             ],
                           ),
@@ -398,21 +639,33 @@ class _HomePageState extends State<HomePage>
                           ),
                         ),
                         const SizedBox(height: 10),
-                        Center(
+                        // تحسين مظهر زر "نسيت كلمة المرور"
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF2F9C95),
+                              width: 1,
+                            ),
+                          ),
                           child: TextButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ForgetPassword()),
-                              );
+                              // الانتقال مباشرة إلى صفحة نسيان كلمة المرور مع تمرير نوع المستخدم الحالي
+                              _navigateToForgetPassword(
+                                  context, _selectedUserType);
                             },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF2F9C95),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                             child: Text(
                               'forgot_password'.tr(),
                               style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 12,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -423,14 +676,87 @@ class _HomePageState extends State<HomePage>
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: _isFormValid
-                                ? () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('login_success'.tr()),
-                                        backgroundColor: Colors.green,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
+                                ? () async {
+                                    // عرض مؤشر التحميل
+                                    setState(() {
+                                      _isLoading = true;
+                                    });
+
+                                    try {
+                                      // استدعاء API للتحقق من بيانات المستخدم مع تحديد نوع المستخدم
+                                      final result = await _authService.login(
+                                        _emailPhoneController.text.trim(),
+                                        _passwordController.text,
+                                        userType: _selectedUserType,
+                                      );
+
+                                      // تأكد من أن الصفحة لا تزال موجودة
+                                      if (!mounted) return;
+
+                                      // إخفاء مؤشر التحميل
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+
+                                      if (result['success']) {
+                                        // تم تسجيل الدخول بنجاح
+                                        final user = result['user'] as User;
+
+                                        // عرض رسالة نجاح
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content: Text('login_success'.tr()),
+                                            backgroundColor: Colors.green,
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+
+                                        // التحقق من نوع المستخدم وتوجيهه للصفحة المناسبة
+                                        if (_selectedUserType == 'Client') {
+                                          // توجيه العميل إلى صفحة العملاء
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => HomeApp(
+                                                userIdentifier:
+                                                    user.email.isNotEmpty
+                                                        ? user.email
+                                                        : user.phone,
+                                                userData: user,
+                                              ),
+                                            ),
+                                          );
+                                        } else {
+                                          // توجيه السائق إلى صفحة السائقين
+                                          Navigator.pushReplacement(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DriverHomeApp(
+                                                userIdentifier:
+                                                    user.email.isNotEmpty
+                                                        ? user.email
+                                                        : user.phone,
+                                                userData: user,
+                                              ),
+                                            ),
+                                          );
+                                        }
+                                      } else {
+                                        // استخدام دالة الحصول على رسالة خطأ مناسبة
+                                        _showErrorDialog(
+                                            _getErrorMessage(result));
+                                      }
+                                    } catch (e) {
+                                      // إخفاء مؤشر التحميل في حالة حدوث خطأ
+                                      setState(() {
+                                        _isLoading = false;
+                                      });
+
+                                      // عرض رسالة خطأ
+                                      _showErrorDialog('server_error'.tr());
+                                    }
                                   }
                                 : null, // تعطيل الزر إذا كانت المدخلات غير صالحة
                             style: ElevatedButton.styleFrom(
@@ -441,30 +767,58 @@ class _HomePageState extends State<HomePage>
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 15),
                             ),
-                            child: Text(
-                              'login_button'.tr(),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : Text(
+                                    'login_button'.tr(),
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        Center(
+                        // تحسين مظهر زر "حساب جديد"
+                        Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: const Color(0xFF2F9C95),
+                              width: 1,
+                            ),
+                          ),
                           child: TextButton(
                             onPressed: () {
+                              // تعديل السلوك ليكون مشابهاً لزر نسيت كلمة المرور
+                              // استخدام نوع الحساب المحدد حالياً وإرساله مباشرة إلى صفحة إنشاء حساب جديد
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) => const NewAccount()),
+                                  builder: (context) =>
+                                      NewAccount(userType: _selectedUserType),
+                                ),
                               );
                             },
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF2F9C95),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
                             child: Text(
                               'new_account'.tr(),
                               style: const TextStyle(
-                                color: Colors.black54,
-                                fontSize: 12,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -486,6 +840,49 @@ class _HomePageState extends State<HomePage>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // تحديث نوع الحساب
+  void _setUserType(String type) {
+    setState(() {
+      _selectedUserType = type;
+
+      // تحديث النص الترويجي/الوصفي حسب نوع الحساب
+      if (type == 'Client') {
+        _description = 'description'.tr();
+      } else if (type == 'Livreur') {
+        _description = 'driver_description'.tr();
+      }
+    });
+  }
+
+  // دالة لنسيان كلمة المرور
+  void _navigateToForgetPassword(BuildContext context, String userType) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ForgetPassword(
+          userType: userType,
+        ),
+      ),
+    );
+  }
+
+  // إضافة دالة لعرض حوار اختيار اللغة
+  void _showLanguageSelectionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => LanguageSelectionDialog(
+        onLanguageSelected: () {
+          // الانتقال إلى شاشة تسجيل الدخول بعد اختيار اللغة
+          setState(() {
+            showLogin = true;
+          });
+          _controller.forward();
+        },
       ),
     );
   }

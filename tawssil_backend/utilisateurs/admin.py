@@ -1,69 +1,233 @@
 from django.contrib import admin
-from .models import Utilisateur, Client, Livreur, Chauffeur, Administrateur
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.utils.html import format_html
+from .models import Utilisateur, Client, Livreur, Chauffeur, Administrateur, Fournisseur, OTPCode
+
+class UtilisateurCreationForm(UserCreationForm):
+    """
+    نموذج لإنشاء مستخدم جديد في لوحة الإدارة مع تشفير كلمة المرور
+    """
+    class Meta:
+        model = Utilisateur
+        fields = ('username', 'email', 'type_utilisateur')
+
+class UtilisateurChangeForm(UserChangeForm):
+    """
+    نموذج لتعديل المستخدمين في لوحة الإدارة مع الحفاظ على تشفير كلمة المرور
+    """
+    class Meta:
+        model = Utilisateur
+        fields = ('username', 'email', 'password', 'type_utilisateur', 'is_active', 'is_staff', 'is_superuser')
 
 class UtilisateurAdmin(admin.ModelAdmin):
+    # استخدام نماذج الإدارة المخصصة
+    form = UtilisateurChangeForm
+    add_form = UtilisateurCreationForm
+    
     # الحقول التي تظهر في قائمة المستخدمين
-    list_display = ('id_utilisateur', 'email', 'nom', 'prenom', 'type_utilisateur', 'is_active', 'date_joined')
+    list_display = ('username', 'email', 'type_utilisateur', 'is_active', 'date_joined')
     
     # الحقول التي يمكن البحث عنها
-    search_fields = ('email', 'nom', 'prenom')
+    search_fields = ('username', 'email', 'telephone')
     
     # الحقول التي يمكن التصفية بها في الجانب
-    list_filter = ('type_utilisateur', 'is_active', 'is_staff', 'is_superuser')
+    list_filter = ('type_utilisateur', 'is_active', 'is_staff')
     
     # تجميع الحقول في أقسام عند العرض/التعديل
     fieldsets = (
-        ('معلومات المستخدم', {
-            'fields': ('nom', 'prenom', 'email', 'mot_de_passe', 'telephone', 'adresse', 'photo_cart')
+        ('معلومات المستخدم الأساسية', {
+            'fields': ('username', 'email', 'password', 'telephone', 'adresse', 'date_naissance', 'photo_profile')
         }),
-        ('النوع', {
+        ('نوع المستخدم', {
             'fields': ('type_utilisateur',)
         }),
-        ('الحالة والصلاحيات', {
-            'description': 'is_staff للوصول للوحة الإدارة، is_superuser لجميع الصلاحيات',
-            'fields': ('is_active', 'is_staff', 'is_superuser'),
+        ('حالة الحساب', {
+            'fields': ('is_active', 'is_staff', 'is_superuser')
+        }),
+        ('معلومات النظام', {
+            'fields': ('date_joined', 'last_login', 'last_modified'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    # الحقول المستخدمة عند إنشاء مستخدم جديد
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('username', 'email', 'password1', 'password2', 'type_utilisateur', 'is_active', 'is_staff', 'is_superuser'),
         }),
     )
     
-    # يتم ملء حقول date_joined و last_login تلقائيًا ولا تظهر في النموذج
+    ordering = ('-date_joined',)
+    filter_horizontal = ()
+    readonly_fields = ('date_joined', 'last_login', 'last_modified')
 
 class ClientAdmin(admin.ModelAdmin):
-    list_display = ('display_id_client',)
-    search_fields = ('id_client__email', 'id_client__nom', 'id_client__prenom')
+    list_display = ('id', 'display_username', 'display_email')
+    search_fields = ('utilisateur__username', 'utilisateur__email')
     
-    def display_id_client(self, obj):
-        """عرض معرف العميل فقط كرقم"""
-        return obj.id_client.id_utilisateur
-    display_id_client.short_description = 'ID'
+    def display_username(self, obj):
+        return obj.utilisateur.username if obj.utilisateur else 'Unknown'
+    display_username.short_description = 'Username'
+    
+    def display_email(self, obj):
+        return obj.utilisateur.email if obj.utilisateur else 'Unknown'
+    display_email.short_description = 'Email'
 
 class LivreurAdmin(admin.ModelAdmin):
-    list_display = ('display_id_livreur', 'type_transport', 'disponibilite')
-    list_filter = ('disponibilite', 'type_transport')
-    search_fields = ('id_livreur__email', 'id_livreur__nom', 'id_livreur__prenom')
+    list_display = ('id', 'display_username', 'display_email', 'disponibilite', 'note_moyenne', 'statut_verification', 'certification_date')
+    search_fields = ('utilisateur__username', 'utilisateur__email')
+    list_filter = ('disponibilite', 'statut_verification', 'certification_date')
     
-    def display_id_livreur(self, obj):
-        """عرض معرف الموصل فقط كرقم"""
-        return obj.id_livreur.id_utilisateur
-    display_id_livreur.short_description = 'ID'
+    fieldsets = (
+        ('معلومات الحساب', {
+            'fields': ('utilisateur', 'type_vehicule', 'note_moyenne', 'disponibilite')
+        }),
+        ('معلومات التحقق', {
+            'fields': ('statut_verification', 'certification_date', 'raison_refus')
+        }),
+        ('المعلومات الشخصية', {
+            'fields': ('matricule_vehicule', 'zone_couverture')
+        }),
+        ('صور ووثائق', {
+            'fields': ('photo_vehicule', 'photo_permis', 'photo_carte_grise', 'photo_assurance', 'photo_vignette', 'photo_carte_municipale')
+        }),
+    )
+    
+    def display_username(self, obj):
+        return obj.utilisateur.username if obj.utilisateur else 'Unknown'
+    display_username.short_description = 'Username'
+    
+    def display_email(self, obj):
+        return obj.utilisateur.email if obj.utilisateur else 'Unknown'
+    display_email.short_description = 'Email'
+    
+    actions = ['approve_verification', 'reject_verification', 'toggle_availability']
+    
+    def approve_verification(self, request, queryset):
+        for livreur in queryset:
+            livreur.approuver_verification()
+        self.message_user(request, f"{queryset.count()} تم تحديث حالة السائقين إلى 'موافق عليه'")
+    approve_verification.short_description = "الموافقة على السائقين المحددين"
+    
+    def reject_verification(self, request, queryset):
+        # هنا يجب إضافة منطق لجمع سبب الرفض من المسؤول
+        for livreur in queryset:
+            livreur.refuser_verification("لم يتم تقديم الوثائق المطلوبة بشكل كامل")
+        self.message_user(request, f"{queryset.count()} تم تحديث حالة السائقين إلى 'مرفوض'")
+    reject_verification.short_description = "رفض السائقين المحددين"
+    
+    def toggle_availability(self, request, queryset):
+        for livreur in queryset:
+            livreur.toggle_disponibilite()
+        self.message_user(request, f"{queryset.count()} تم تبديل حالة التوفر للسائقين المحددين")
+    toggle_availability.short_description = "تبديل حالة التوفر للسائقين المحددين"
 
 class ChauffeurAdmin(admin.ModelAdmin):
-    list_display = ('display_id_chauffeur', 'disponibilite', 'note_moyenne', 'type_voiture')
-    list_filter = ('disponibilite',)
-    search_fields = ('id_chauffeur__email', 'id_chauffeur__nom', 'id_chauffeur__prenom', 'matricule_voiture')
+    list_display = ('id', 'display_username', 'display_email', 'type_vehicule', 'disponibilite', 'statut_verification', 'certification_date')
+    search_fields = ('utilisateur__username', 'utilisateur__email')
+    list_filter = ('disponibilite', 'type_vehicule', 'statut_verification', 'certification_date')
     
-    def display_id_chauffeur(self, obj):
-        """عرض معرف السائق فقط كرقم"""
-        return obj.id_chauffeur.id_utilisateur
-    display_id_chauffeur.short_description = 'ID'
+    fieldsets = (
+        ('معلومات الحساب', {
+            'fields': ('utilisateur', 'type_vehicule', 'note_moyenne', 'disponibilite')
+        }),
+        ('معلومات التحقق', {
+            'fields': ('statut_verification', 'certification_date', 'raison_refus')
+        }),
+        ('المعلومات الشخصية', {
+            'fields': ('matricule_vehicule', 'zone_couverture')
+        }),
+        ('صور ووثائق', {
+            'fields': ('photo_vehicule', 'photo_permis', 'photo_carte_grise', 'photo_assurance', 'photo_vignette', 'photo_carte_municipale')
+        }),
+    )
+    
+    def display_username(self, obj):
+        return obj.utilisateur.username if obj.utilisateur else 'Unknown'
+    display_username.short_description = 'Username'
+    
+    def display_email(self, obj):
+        return obj.utilisateur.email if obj.utilisateur else 'Unknown'
+    display_email.short_description = 'Email'
+    
+    actions = ['approve_verification', 'reject_verification', 'toggle_availability']
+    
+    def approve_verification(self, request, queryset):
+        for chauffeur in queryset:
+            chauffeur.approuver_verification()
+        self.message_user(request, f"{queryset.count()} تم تحديث حالة السائقين إلى 'موافق عليه'")
+    approve_verification.short_description = "الموافقة على السائقين المحددين"
+    
+    def reject_verification(self, request, queryset):
+        # هنا يجب إضافة منطق لجمع سبب الرفض من المسؤول
+        for chauffeur in queryset:
+            chauffeur.refuser_verification("لم يتم تقديم الوثائق المطلوبة بشكل كامل")
+        self.message_user(request, f"{queryset.count()} تم تحديث حالة السائقين إلى 'مرفوض'")
+    reject_verification.short_description = "رفض السائقين المحددين"
+    
+    def toggle_availability(self, request, queryset):
+        for chauffeur in queryset:
+            chauffeur.toggle_disponibilite()
+        self.message_user(request, f"{queryset.count()} تم تبديل حالة التوفر للسائقين المحددين")
+    toggle_availability.short_description = "تبديل حالة التوفر للسائقين المحددين"
 
 class AdministrateurAdmin(admin.ModelAdmin):
-    list_display = ('display_id_admin', 'nom_admin')
-    search_fields = ('id_admin__email', 'id_admin__nom', 'id_admin__prenom', 'nom_admin')
+    list_display = ('id', 'display_username', 'display_email', 'display_is_staff')
+    search_fields = ('utilisateur__username', 'utilisateur__email')
     
-    def display_id_admin(self, obj):
-        """عرض معرف المسؤول فقط كرقم بدلاً من الاسم الكامل والبريد الإلكتروني"""
-        return obj.id_admin.id_utilisateur
-    display_id_admin.short_description = 'ID'
+    def display_username(self, obj):
+        return obj.utilisateur.username if obj.utilisateur else 'Unknown'
+    display_username.short_description = 'Username'
+    
+    def display_email(self, obj):
+        return obj.utilisateur.email if obj.utilisateur else 'Unknown'
+    display_email.short_description = 'Email'
+    
+    def display_is_staff(self, obj):
+        return obj.utilisateur.is_staff if obj.utilisateur else False
+    display_is_staff.short_description = 'Is Staff'
+    display_is_staff.boolean = True
+
+class FournisseurAdmin(admin.ModelAdmin):
+    list_display = ('id', 'display_email', 'nom_commerce', 'type_fournisseur')
+    search_fields = ('utilisateur__username', 'utilisateur__email', 'nom_commerce')
+    list_filter = ('type_fournisseur',)
+    
+    def display_email(self, obj):
+        return obj.utilisateur.email if obj.utilisateur else 'Unknown'
+    display_email.short_description = 'Email'
+
+class OTPCodeAdmin(admin.ModelAdmin):
+    """إدارة رموز OTP في لوحة المشرف"""
+    list_display = ('id', 'code', 'identifier', 'type', 'display_user', 'is_used', 'display_expired', 'created_at', 'expires_at')
+    list_filter = ('is_used', 'created_at')
+    search_fields = ('code', 'identifier', 'user__username', 'user__email')
+    readonly_fields = ('created_at', 'expires_at', 'is_expired', 'time_remaining')
+    fieldsets = (
+        ('معلومات الرمز', {
+            'fields': ('user', 'code', 'identifier', 'type', 'is_used', 'is_blocked')
+        }),
+        ('معلومات الصلاحية', {
+            'fields': ('created_at', 'expires_at', 'is_expired', 'time_remaining')
+        }),
+        ('معلومات التسجيل والتحقق', {
+            'fields': ('verification_attempts', 'last_attempt_time', 'registration_data')
+        }),
+    )
+    
+    def display_user(self, obj):
+        if obj.user:
+            return f"{obj.user.username} ({obj.user.email})"
+        else:
+            return "لا يوجد مستخدم مرتبط"
+    display_user.short_description = 'المستخدم'
+    
+    def display_expired(self, obj):
+        return obj.is_expired
+    display_expired.short_description = 'منتهي الصلاحية'
+    display_expired.boolean = True
 
 # تسجيل النماذج مع فئات الإدارة المخصصة
 admin.site.register(Utilisateur, UtilisateurAdmin)
@@ -71,3 +235,5 @@ admin.site.register(Client, ClientAdmin)
 admin.site.register(Livreur, LivreurAdmin)
 admin.site.register(Chauffeur, ChauffeurAdmin)
 admin.site.register(Administrateur, AdministrateurAdmin)
+admin.site.register(Fournisseur, FournisseurAdmin)
+admin.site.register(OTPCode, OTPCodeAdmin)

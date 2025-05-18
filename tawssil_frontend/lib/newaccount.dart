@@ -1,9 +1,28 @@
 import 'package:flutter/material.dart';
 import 'codeverification.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'services/auth_service.dart';
+import 'services/otp_service.dart';
+
+// إضافة مفتاح معلومات لإخفاء رسالة الخطأ
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 
 class NewAccount extends StatefulWidget {
-  const NewAccount({super.key});
+  final String userType;
+  final String email;
+  final String phone;
+  final String fullName;
+  final String dob;
+
+  const NewAccount({
+    super.key,
+    required this.userType,
+    this.email = '',
+    this.phone = '',
+    this.fullName = '',
+    this.dob = '',
+  });
 
   @override
   State<NewAccount> createState() => _NewAccountState();
@@ -21,6 +40,20 @@ class _NewAccountState extends State<NewAccount> {
   String? _dobError;
   bool _isFormValid = false;
 
+  // إضافة متغيرات للتحكم في حالة التحميل والتحقق
+  bool _isLoading = false;
+  bool _isEmailChecking = false;
+  bool _isPhoneChecking = false;
+  bool _emailExists = false;
+  bool _phoneExists = false;
+  bool _isSendingOTP = false;
+
+  // تحديد طريقة التوثيق الافتراضية (البريد الإلكتروني)
+  final bool _isUsingEmail = true;
+
+  // إضافة مرجع لخدمة المصادقة
+  final AuthService _authService = AuthService();
+
   // Regular expressions للتحقق
   final RegExp _nameRegex = RegExp(
       r'^[a-zA-Z\u0600-\u06FF\s]{3,50}$'); // الاسم الكامل (عربي أو إنجليزي)
@@ -34,8 +67,8 @@ class _NewAccountState extends State<NewAccount> {
     super.initState();
     // إضافة مستمعين للتحقق من صحة المدخلات على الفور
     _nameController.addListener(_validateInputsOnChange);
-    _emailController.addListener(_validateInputsOnChange);
-    _phoneController.addListener(_validateInputsOnChange);
+    _emailController.addListener(_validateEmailOnChange);
+    _phoneController.addListener(_validatePhoneOnChange);
     _dobController.addListener(_validateInputsOnChange);
   }
 
@@ -46,6 +79,140 @@ class _NewAccountState extends State<NewAccount> {
     _phoneController.dispose();
     _dobController.dispose();
     super.dispose();
+  }
+
+  // دالة للتحقق من وجود البريد الإلكتروني في قاعدة البيانات
+  Future<void> _checkEmailExists(String email) async {
+    if (email.isEmpty || !_emailRegex.hasMatch(email)) {
+      return;
+    }
+
+    setState(() {
+      _isEmailChecking = true;
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.checkUserExists(
+        email,
+        isEmail: true,
+        userType: widget.userType,
+      );
+
+      setState(() {
+        _isEmailChecking = false;
+        _isLoading = false;
+        _emailExists = result['exists'] ?? false;
+
+        if (_emailExists) {
+          _emailError = 'email_already_exists'.tr();
+        }
+
+        _checkFormValidity();
+      });
+    } catch (e) {
+      setState(() {
+        _isEmailChecking = false;
+        _isLoading = false;
+        // عدم تحديث _emailExists في حالة الخطأ للحفاظ على الحالة السابقة
+        _checkFormValidity();
+      });
+    }
+  }
+
+  // دالة للتحقق من وجود رقم الهاتف في قاعدة البيانات
+  Future<void> _checkPhoneExists(String phone) async {
+    if (phone.isEmpty || !_phoneRegex.hasMatch(phone)) {
+      return;
+    }
+
+    setState(() {
+      _isPhoneChecking = true;
+      _isLoading = true;
+    });
+
+    try {
+      final result = await _authService.checkUserExists(
+        phone,
+        isEmail: false,
+        userType: widget.userType,
+      );
+
+      setState(() {
+        _isPhoneChecking = false;
+        _isLoading = false;
+        _phoneExists = result['exists'] ?? false;
+
+        if (_phoneExists) {
+          _phoneError = 'phone_already_exists'.tr();
+        }
+
+        _checkFormValidity();
+      });
+    } catch (e) {
+      setState(() {
+        _isPhoneChecking = false;
+        _isLoading = false;
+        // عدم تحديث _phoneExists في حالة الخطأ للحفاظ على الحالة السابقة
+        _checkFormValidity();
+      });
+    }
+  }
+
+  // تعديل دالة التحقق من البريد الإلكتروني لاستدعاء التحقق من الوجود
+  void _validateEmailOnChange() {
+    final emailValue = _emailController.text.trim();
+    if (emailValue.isEmpty) {
+      setState(() {
+        _emailError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (!_emailRegex.hasMatch(emailValue)) {
+      setState(() {
+        _emailError = 'invalid_email'.tr();
+        _isFormValid = false;
+      });
+    } else {
+      setState(() {
+        _emailError = null;
+        _checkFormValidity();
+      });
+
+      // استدعاء دالة التحقق من وجود البريد الإلكتروني مع تأخير بسيط
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (_emailController.text.trim() == emailValue) {
+          _checkEmailExists(emailValue);
+        }
+      });
+    }
+  }
+
+  // تعديل دالة التحقق من رقم الهاتف لاستدعاء التحقق من الوجود
+  void _validatePhoneOnChange() {
+    final phoneValue = _phoneController.text.trim();
+    if (phoneValue.isEmpty) {
+      setState(() {
+        _phoneError = 'input_required'.tr();
+        _isFormValid = false;
+      });
+    } else if (!_phoneRegex.hasMatch(phoneValue)) {
+      setState(() {
+        _phoneError = 'invalid_phone'.tr();
+        _isFormValid = false;
+      });
+    } else {
+      setState(() {
+        _phoneError = null;
+        _checkFormValidity();
+      });
+
+      // استدعاء دالة التحقق من وجود رقم الهاتف مع تأخير بسيط
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (_phoneController.text.trim() == phoneValue) {
+          _checkPhoneExists(phoneValue);
+        }
+      });
+    }
   }
 
   // التحقق من صحة المدخلات عند تغييرها
@@ -65,44 +232,6 @@ class _NewAccountState extends State<NewAccount> {
     } else {
       setState(() {
         _nameError = null;
-        _checkFormValidity();
-      });
-    }
-
-    // التحقق من البريد الإلكتروني
-    final emailValue = _emailController.text.trim();
-    if (emailValue.isEmpty) {
-      setState(() {
-        _emailError = 'input_required'.tr();
-        _isFormValid = false;
-      });
-    } else if (!_emailRegex.hasMatch(emailValue)) {
-      setState(() {
-        _emailError = 'invalid_email'.tr();
-        _isFormValid = false;
-      });
-    } else {
-      setState(() {
-        _emailError = null;
-        _checkFormValidity();
-      });
-    }
-
-    // التحقق من رقم الهاتف
-    final phoneValue = _phoneController.text.trim();
-    if (phoneValue.isEmpty) {
-      setState(() {
-        _phoneError = 'input_required'.tr();
-        _isFormValid = false;
-      });
-    } else if (!_phoneRegex.hasMatch(phoneValue)) {
-      setState(() {
-        _phoneError = 'invalid_phone'.tr();
-        _isFormValid = false;
-      });
-    } else {
-      setState(() {
-        _phoneError = null;
         _checkFormValidity();
       });
     }
@@ -149,10 +278,12 @@ class _NewAccountState extends State<NewAccount> {
     final dobValue = _dobController.text.trim();
 
     bool isNameValid = nameValue.isNotEmpty && _nameRegex.hasMatch(nameValue);
-    bool isEmailValid =
-        emailValue.isNotEmpty && _emailRegex.hasMatch(emailValue);
-    bool isPhoneValid =
-        phoneValue.isNotEmpty && _phoneRegex.hasMatch(phoneValue);
+    bool isEmailValid = emailValue.isNotEmpty &&
+        _emailRegex.hasMatch(emailValue) &&
+        !_emailExists;
+    bool isPhoneValid = phoneValue.isNotEmpty &&
+        _phoneRegex.hasMatch(phoneValue) &&
+        !_phoneExists;
 
     bool isDobValid = false;
     if (dobValue.isNotEmpty) {
@@ -167,9 +298,125 @@ class _NewAccountState extends State<NewAccount> {
       }
     }
 
+    bool isChecking = _isEmailChecking || _isPhoneChecking;
+
     setState(() {
-      _isFormValid = isNameValid && isEmailValid && isPhoneValid && isDobValid;
+      _isFormValid = isNameValid &&
+          isEmailValid &&
+          isPhoneValid &&
+          isDobValid &&
+          !isChecking;
     });
+  }
+
+  // دالة لإرسال رمز التحقق والانتقال إلى صفحة التحقق
+  Future<void> _sendOTPAndNavigate() async {
+    if (!_isFormValid || _isLoading) {
+      debugPrint('Form is not valid or is already loading');
+      // عرض رسالة للمستخدم
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تحقق من صحة البيانات المدخلة'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _isSendingOTP = true;
+    });
+
+    debugPrint('Starting OTP process...');
+
+    try {
+      // استخدام البريد الإلكتروني دائمًا كوسيلة أساسية للتحقق
+      String identifier = _emailController.text.trim();
+      bool isEmail = true;
+
+      // تحضير تاريخ الميلاد
+      String birthDate = _dobController.text.trim();
+
+      debugPrint(
+          'Sending OTP request with: $identifier (isEmail: $isEmail), userType: ${widget.userType}, fullName: ${_nameController.text.trim()}, birthDate: $birthDate');
+
+      // استخدام OTPService بدلاً من AuthService لإرسال رمز التحقق
+      final result = await OTPService.sendRegistrationOTPByEmail(
+        email: identifier,
+        userType: widget.userType,
+        fullName: _nameController.text.trim(),
+        birthDate: birthDate,
+        isInitialRequest: true,
+      );
+
+      debugPrint('OTP result: $result');
+
+      setState(() {
+        _isLoading = false;
+        _isSendingOTP = false;
+      });
+
+      if (result['success']) {
+        debugPrint('OTP sent successfully, navigating to verification page');
+        // الانتقال إلى صفحة التحقق
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                CodeVerification(
+              email: _emailController.text.trim(),
+              phone: _phoneController.text.trim(),
+              userType: widget.userType,
+              fullName: _nameController.text.trim(),
+              dob: _dobController.text.trim(),
+              isUsingEmail: true,
+              // إرسال رمز التحقق المولد محليًا إلى صفحة التحقق
+              otpCode: result['data']?['otp'] ?? '',
+            ),
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.easeInOut;
+              var tween =
+                  Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              var offsetAnimation = animation.drive(tween);
+              return SlideTransition(position: offsetAnimation, child: child);
+            },
+          ),
+        );
+      } else {
+        // عرض رسالة الخطأ
+        debugPrint('Failed to send OTP: ${result['message']}');
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'].toString().tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error during OTP send process: $e');
+      setState(() {
+        _isLoading = false;
+        _isSendingOTP = false;
+      });
+
+      if (!mounted) return;
+
+      // عرض رسالة الخطأ
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('error_unexpected'.tr()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   // عرض منتقي التاريخ
@@ -203,404 +450,375 @@ class _NewAccountState extends State<NewAccount> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF2F9C95),
-      body: SafeArea(
-        child: SingleChildScrollView(
+    // الحصول على حجم الشاشة للتجاوب مع مختلف الأجهزة
+    final Size screenSize = MediaQuery.of(context).size;
+    final double screenHeight = screenSize.height;
+    final double screenWidth = screenSize.width;
+
+    return ScaffoldMessenger(
+      key: scaffoldMessengerKey,
+      child: Scaffold(
+        backgroundColor: const Color(0xFF2F9C95),
+        body: SafeArea(
+          // استخدام SingleChildScrollView داخل Expanded يضمن توسيع المحتوى بشكل صحيح
+          bottom: false,
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 16, right: 16),
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: PopupMenuButton<String>(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            context.locale.languageCode.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const Icon(Icons.keyboard_arrow_down,
-                              color: Colors.black),
-                        ],
-                      ),
-                    ),
-                    onSelected: (String value) {
-                      context.setLocale(Locale(value));
-                    },
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<String>>[
-                      const PopupMenuItem<String>(
-                        value: 'fr',
-                        child: Text('FR - Français'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'ar',
-                        child: Text('AR - العربية'),
-                      ),
-                      const PopupMenuItem<String>(
-                        value: 'en',
-                        child: Text('EN - English'),
-                      ),
-                    ],
+              // منطقة الشعار العلوية
+              SizedBox(height: screenHeight * 0.02),
+              // Logo
+              SizedBox(
+                height: screenHeight * 0.12,
+                child: Center(
+                  child: Image.asset(
+                    'assets/images/Groupes@4x.png',
+                    width: screenWidth * 0.25,
+                    height: screenWidth * 0.25,
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              // Logo
-              Center(
-                child: Image.asset(
-                  'assets/images/Groupes@4x.png',
-                  width: 120,
-                  height: 120,
-                ),
-              ),
-              const SizedBox(height: 20),
+              SizedBox(height: screenHeight * 0.01),
 
               // Main Content Container
-              Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(40)),
-                ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Title
-                          Center(
-                              child: Text(
-                            'create_account'.tr(),
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          )),
-                          const SizedBox(height: 8),
-                          // Subtitles
-                          Text(
-                            'start_journey'.tr(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          Text(
-                            'closer_with_twsil'.tr(),
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-
-                          // Form with Steps
-                          Stack(
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(40)),
+                  ),
+                  child: Stack(
+                    children: [
+                      // استخدام SingleChildScrollView داخل منطقة المحتوى
+                      SingleChildScrollView(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              screenWidth * 0.04,
+                              screenHeight * 0.02,
+                              screenWidth * 0.04,
+                              screenHeight * 0.1),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Steps Line
-                              Positioned(
-                                right: context.locale.languageCode == 'ar'
-                                    ? 20
-                                    : null,
-                                left: context.locale.languageCode != 'ar'
-                                    ? 20
-                                    : null,
-                                top: 40,
-                                bottom: 100,
-                                child: Container(
-                                  width: 2,
-                                  color: const Color(0xFF2F9C95),
+                              // Title
+                              Center(
+                                  child: Text(
+                                'create_account'.tr(),
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.045,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              )),
+                              SizedBox(height: screenHeight * 0.01),
+                              // Subtitles
+                              Text(
+                                'start_journey'.tr(),
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.035,
+                                  color: Colors.grey,
                                 ),
                               ),
-                              // Content
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Text(
+                                'closer_with_twsil'.tr(),
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.035,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                              SizedBox(height: screenHeight * 0.02),
+
+                              // Form with Steps
+                              Stack(
                                 children: [
-                                  // Step 1 with inputs
-                                  Row(
+                                  // Steps Line
+                                  Positioned(
+                                    right: context.locale.languageCode == 'ar'
+                                        ? screenWidth * 0.05
+                                        : null,
+                                    left: context.locale.languageCode != 'ar'
+                                        ? screenWidth * 0.05
+                                        : null,
+                                    top: screenHeight * 0.04,
+                                    bottom: screenHeight * 0.1,
+                                    child: Container(
+                                      width: 2,
+                                      color: const Color(0xFF2F9C95),
+                                    ),
+                                  ),
+                                  // Content
+                                  Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF2F9C95),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.person_outline,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
+                                      // Step 1 with inputs
+                                      Row(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            'step1'.tr(),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
+                                          Container(
+                                            width: screenWidth * 0.1,
+                                            height: screenWidth * 0.1,
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF2F9C95),
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Icon(
+                                              Icons.person_outline,
+                                              color: Colors.white,
                                             ),
                                           ),
-                                          Text(
-                                            'personal_info'.tr(),
-                                            style: const TextStyle(
-                                              color: Colors.grey,
-                                            ),
+                                          SizedBox(width: screenWidth * 0.03),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'step1'.tr(),
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: screenWidth * 0.04,
+                                                ),
+                                              ),
+                                              Text(
+                                                'personal_info'.tr(),
+                                                style: TextStyle(
+                                                  color: Colors.grey,
+                                                  fontSize: screenWidth * 0.035,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
+                                      SizedBox(height: screenHeight * 0.015),
 
-                                  // Input Fields
-                                  Padding(
-                                    padding: EdgeInsets.only(
-                                      left: context.locale.languageCode == 'ar'
-                                          ? 0
-                                          : 52,
-                                      right: context.locale.languageCode == 'ar'
-                                          ? 52
-                                          : 0,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          context.locale.languageCode == 'ar'
-                                              ? CrossAxisAlignment.end
-                                              : CrossAxisAlignment.start,
-                                      children: [
-                                        _buildInputField(
-                                          controller: _nameController,
-                                          icon: Icons.person_outline,
-                                          hint: 'full_name'.tr(),
-                                          error: _nameError,
+                                      // Input Fields
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          left: context.locale.languageCode ==
+                                                  'ar'
+                                              ? 0
+                                              : screenWidth * 0.13,
+                                          right: context.locale.languageCode ==
+                                                  'ar'
+                                              ? screenWidth * 0.13
+                                              : 0,
                                         ),
-                                        _buildInputField(
-                                          controller: _emailController,
-                                          icon: Icons.email_outlined,
-                                          hint: 'email'.tr(),
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                          error: _emailError,
-                                        ),
-                                        _buildInputField(
-                                          controller: _phoneController,
-                                          icon: Icons.phone_outlined,
-                                          hint: 'phone_number'.tr(),
-                                          keyboardType: TextInputType.phone,
-                                          error: _phoneError,
-                                        ),
-                                        _buildDateField(
-                                          controller: _dobController,
-                                          icon: Icons.calendar_today_outlined,
-                                          hint: 'birth_date'.tr(),
-                                          error: _dobError,
-                                          onTap: () => _selectDate(context),
-                                        ),
-                                        const SizedBox(height: 10),
-                                        // Continue Button
-                                        SizedBox(
-                                          width: double.infinity,
-                                          child: ElevatedButton(
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF2F9C95),
-                                              disabledBackgroundColor:
-                                                  Colors.grey[400],
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      vertical: 12),
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              context.locale.languageCode ==
+                                                      'ar'
+                                                  ? CrossAxisAlignment.end
+                                                  : CrossAxisAlignment.start,
+                                          children: [
+                                            _buildInputField(
+                                              controller: _nameController,
+                                              icon: Icons.person_outline,
+                                              hint: 'full_name'.tr(),
+                                              error: _nameError,
                                             ),
-                                            onPressed: _isFormValid
-                                                ? () {
-                                                    Navigator.push(
-                                                      context,
-                                                      PageRouteBuilder(
-                                                        pageBuilder: (context,
-                                                                animation,
-                                                                secondaryAnimation) =>
-                                                            CodeVerification(
-                                                          email:
-                                                              _emailController
-                                                                  .text
-                                                                  .trim(),
-                                                          phone:
-                                                              _phoneController
-                                                                  .text
-                                                                  .trim(),
+                                            _buildInputField(
+                                              controller: _emailController,
+                                              icon: Icons.email_outlined,
+                                              hint: 'email'.tr(),
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                              error: _emailError,
+                                            ),
+                                            _buildInputField(
+                                              controller: _phoneController,
+                                              icon: Icons.phone_outlined,
+                                              hint: 'phone_number'.tr(),
+                                              keyboardType: TextInputType.phone,
+                                              error: _phoneError,
+                                            ),
+                                            _buildDateField(
+                                              controller: _dobController,
+                                              icon:
+                                                  Icons.calendar_today_outlined,
+                                              hint: 'birth_date'.tr(),
+                                              error: _dobError,
+                                              onTap: () => _selectDate(context),
+                                            ),
+                                            SizedBox(
+                                                height: screenHeight * 0.01),
+                                            // Continue Button
+                                            SizedBox(
+                                              width: double.infinity,
+                                              child: ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor:
+                                                      const Color(0xFF2F9C95),
+                                                  disabledBackgroundColor:
+                                                      Colors.grey[400],
+                                                  padding: EdgeInsets.symmetric(
+                                                      vertical:
+                                                          screenHeight * 0.015),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
+                                                  ),
+                                                ),
+                                                onPressed:
+                                                    _isFormValid && !_isLoading
+                                                        ? _sendOTPAndNavigate
+                                                        : null,
+                                                child: _isSendingOTP
+                                                    ? const SizedBox(
+                                                        width: 24,
+                                                        height: 24,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          color: Colors.white,
+                                                          strokeWidth: 2,
                                                         ),
-                                                        transitionsBuilder:
-                                                            (context,
-                                                                animation,
-                                                                secondaryAnimation,
-                                                                child) {
-                                                          const begin =
-                                                              Offset(0.0, -1.0);
-                                                          const end =
-                                                              Offset.zero;
-                                                          const curve =
-                                                              Curves.easeInOut;
-
-                                                          var tween = Tween(
-                                                                  begin: begin,
-                                                                  end: end)
-                                                              .chain(CurveTween(
-                                                                  curve:
-                                                                      curve));
-                                                          var offsetAnimation =
-                                                              animation
-                                                                  .drive(tween);
-
-                                                          return FadeTransition(
-                                                            opacity: animation,
-                                                            child:
-                                                                SlideTransition(
-                                                              position:
-                                                                  offsetAnimation,
-                                                              child: child,
-                                                            ),
-                                                          );
-                                                        },
-                                                        transitionDuration:
-                                                            const Duration(
-                                                                milliseconds:
-                                                                    400),
+                                                      )
+                                                    : Text(
+                                                        'continue_button'.tr(),
+                                                        style: TextStyle(
+                                                          fontSize:
+                                                              screenWidth *
+                                                                  0.04,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                        ),
                                                       ),
-                                                    );
-                                                  }
-                                                : null,
-                                            child: Text(
-                                              'continue'.tr(),
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // Step 2
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 60,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[200],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.shield_outlined,
-                                          color: Colors.grey[400],
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      SizedBox(height: screenHeight * 0.015),
+
+                                      // Step 2
+                                      Row(
                                         children: [
-                                          Text(
-                                            'step2'.tr(),
-                                            style: TextStyle(
+                                          Container(
+                                            width: screenWidth * 0.1,
+                                            height: screenWidth * 0.1,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.shield_outlined,
                                               color: Colors.grey[400],
+                                              size: screenWidth * 0.05,
                                             ),
                                           ),
-                                          Text(
-                                            'verify_code'.tr(),
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                            ),
+                                          SizedBox(width: screenWidth * 0.03),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'step2'.tr(),
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: screenWidth * 0.04,
+                                                ),
+                                              ),
+                                              Text(
+                                                'verify_code'.tr(),
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: screenWidth * 0.035,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
+                                      SizedBox(height: screenHeight * 0.015),
 
-                                  // Step 3
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey[200],
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.lock_outline,
-                                          color: Colors.grey[400],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
+                                      // Step 3
+                                      Row(
                                         children: [
-                                          Text(
-                                            'step3'.tr(),
-                                            style: TextStyle(
+                                          Container(
+                                            width: screenWidth * 0.1,
+                                            height: screenWidth * 0.1,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey[200],
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: Icon(
+                                              Icons.lock_outline,
                                               color: Colors.grey[400],
+                                              size: screenWidth * 0.05,
                                             ),
                                           ),
-                                          Text(
-                                            'create_password'.tr(),
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                            ),
+                                          SizedBox(width: screenWidth * 0.03),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                'step3'.tr(),
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: screenWidth * 0.04,
+                                                ),
+                                              ),
+                                              Text(
+                                                'create_password'.tr(),
+                                                style: TextStyle(
+                                                  color: Colors.grey[400],
+                                                  fontSize: screenWidth * 0.035,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
+
+                                      // إضافة زر المتابعة
+                                      SizedBox(height: screenHeight * 0.03),
+
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          left: context.locale.languageCode ==
+                                                  'ar'
+                                              ? 0
+                                              : screenWidth * 0.13,
+                                          right: context.locale.languageCode ==
+                                                  'ar'
+                                              ? screenWidth * 0.13
+                                              : 0,
+                                        ),
+                                        child: Container(),
+                                      ),
                                     ],
                                   ),
-                                  const SizedBox(height: 60),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-
-                    // Bottom Logo
-                    Positioned(
-                      bottom: 20,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Image.asset(
-                          "assets/images/Rectangle@4x.png",
-                          height: 40,
                         ),
                       ),
-                    ),
-                  ],
+
+                      // Bottom Logo - أصبحت مثبتة في الأسفل بشكل صحيح
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          padding: EdgeInsets.only(bottom: screenHeight * 0.02),
+                          color: Colors.white,
+                          child: Center(
+                            child: Image.asset(
+                              "assets/images/Rectangle@4x.png",
+                              height: screenHeight * 0.04,
+                              width: screenWidth * 0.1,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -617,6 +835,17 @@ class _NewAccountState extends State<NewAccount> {
     TextInputType keyboardType = TextInputType.text,
     String? error,
   }) {
+    bool isCheckingField = (hint == 'email'.tr() && _isEmailChecking) ||
+        (hint == 'phone_number'.tr() && _isPhoneChecking);
+
+    // تحديد لون مختلف للحقل استنادًا إلى كونه البريد المستخدم للتحقق
+    Color fieldColor = const Color(0xFF2F9C95);
+    if (hint == 'email'.tr() && _isUsingEmail) {
+      fieldColor = Colors.blue; // إبراز البريد كوسيلة تحقق
+    } else if (hint == 'phone_number'.tr() && !_isUsingEmail) {
+      fieldColor = Colors.blue; // إبراز الهاتف كوسيلة تحقق
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -632,7 +861,18 @@ class _NewAccountState extends State<NewAccount> {
               fillColor: Colors.grey[100],
               hintText: hint,
               hintStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
-              prefixIcon: Icon(icon, color: const Color(0xFF2F9C95), size: 20),
+              prefixIcon: Icon(icon, color: fieldColor, size: 20),
+              suffixIcon: isCheckingField
+                  ? Container(
+                      width: 20,
+                      height: 20,
+                      padding: const EdgeInsets.all(8),
+                      child: const CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Color(0xFF2F9C95),
+                      ),
+                    )
+                  : null,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
@@ -647,7 +887,15 @@ class _NewAccountState extends State<NewAccount> {
               ),
               errorText: error,
             ),
-            onChanged: (_) => _validateInputsOnChange(),
+            onChanged: (_) {
+              if (hint == 'email'.tr()) {
+                _validateEmailOnChange();
+              } else if (hint == 'phone_number'.tr()) {
+                _validatePhoneOnChange();
+              } else {
+                _validateInputsOnChange();
+              }
+            },
           ),
         ],
       ),

@@ -1,5 +1,5 @@
 from django.db import models
-from transport.models import Commande
+from commandes.models import Commande
 
 class Paiement(models.Model):
     STATUT_CHOICES = [

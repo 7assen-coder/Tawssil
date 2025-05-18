@@ -4,15 +4,18 @@ import 'dart:async';
 import 'newpassword.dart';
 import 'package:flutter/services.dart';
 import 'forget_password.dart';
+import 'services/otp_service.dart';
 
 class CodePage extends StatefulWidget {
   final String? phoneNumber;
   final String? email;
+  final String userType;
 
   const CodePage({
     super.key,
     this.phoneNumber,
     this.email,
+    required this.userType,
   });
 
   @override
@@ -22,22 +25,46 @@ class CodePage extends StatefulWidget {
 class _CodePageState extends State<CodePage> {
   final List<TextEditingController> controllers =
       List.generate(4, (index) => TextEditingController());
-  late Timer _timer;
+  Timer _timer = Timer(Duration.zero, () {});
   int _remainingSeconds = 179;
   bool _canResend = false;
   int _resendCount = 0;
+  bool _isVerifying = false;
+  bool _isSendingCode = false;
+  String? _verificationError;
+  bool _initialCodeSent = false;
+
+  final int _baseWaitSeconds = 180;
 
   @override
   void initState() {
     super.initState();
-    // بدء العد التنازلي
+    _startTimerAndSendCode(isInitial: true);
+  }
+
+  void _startTimerAndSendCode({bool isInitial = false}) {
+    if (_isSendingCode || (isInitial && _initialCodeSent)) return;
+
+    setState(() {
+      _isSendingCode = true;
+      _canResend = false;
+
+      if (!isInitial && _resendCount > 0) {
+        _remainingSeconds = _baseWaitSeconds * (1 << _resendCount);
+      } else {
+        _remainingSeconds = _baseWaitSeconds;
+      }
+    });
+
     startTimer();
+
+    _sendVerificationCode(isInitial);
   }
 
   void startTimer() {
-    setState(() {
-      _canResend = false;
-    });
+    if (_timer.isActive) {
+      _timer.cancel();
+    }
 
     const oneSec = Duration(seconds: 1);
     _timer = Timer.periodic(oneSec, (timer) {
@@ -55,25 +82,91 @@ class _CodePageState extends State<CodePage> {
   }
 
   void resendCode() {
-    if (_canResend) {
+    if (_canResend && !_isSendingCode) {
       setState(() {
         _resendCount++;
-        // زيادة الوقت في كل مرة: 3 دقائق + (3 * عدد مرات إعادة الإرسال)
-        _remainingSeconds = 180 + (180 * _resendCount);
-        _canResend = false;
       });
-      startTimer();
-      // هنا يمكن إضافة كود لإعادة إرسال الرمز فعلياً
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('code_resent'.tr()),
-          backgroundColor: const Color(0xFF2F9C95),
-        ),
-      );
+
+      _startTimerAndSendCode();
     }
   }
 
-  // دالة لإرجاع مؤشر الحقل النشط (أول حقل فارغ)
+  Future<void> _sendVerificationCode(bool isInitial) async {
+    Map<String, dynamic> result;
+
+    try {
+      if (widget.email != null && widget.email!.isNotEmpty) {
+        result = await OTPService.sendOTPByEmail(
+          email: widget.email!,
+          userType: widget.userType,
+          isInitialRequest: isInitial,
+        );
+      } else if (widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty) {
+        result = await OTPService.sendOTPBySMS(
+          phoneNumber: widget.phoneNumber!,
+          userType: widget.userType,
+          isInitialRequest: isInitial,
+        );
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('contact_method_required'.tr()),
+              backgroundColor: Colors.red,
+            ),
+          );
+          setState(() {
+            _isSendingCode = false;
+          });
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _isSendingCode = false;
+          if (isInitial) _initialCodeSent = true;
+        });
+
+        if (result['success']) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  isInitial ? 'verification_sent'.tr() : 'code_resent'.tr()),
+              backgroundColor: const Color(0xFF2F9C95),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'].toString().tr()),
+              backgroundColor: Colors.red,
+            ),
+          );
+
+          setState(() {
+            _canResend = true;
+            _timer.cancel();
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSendingCode = false;
+          _canResend = true;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('error_sending_code'.tr()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   int _getActiveFieldIndex() {
     for (int i = 0; i < controllers.length; i++) {
       if (controllers[i].text.isEmpty) {
@@ -86,20 +179,17 @@ class _CodePageState extends State<CodePage> {
   String get formattedTime {
     int minutes = _remainingSeconds ~/ 60;
     int seconds = _remainingSeconds % 60;
-    return "${minutes}m ${seconds}s";
+    return "$minutes${'minutes'.tr()} $seconds${'seconds'.tr()}";
   }
 
-  // دالة لإخفاء جزء من معلومات الاتصال وعرضها بشكل آمن
   String _getMaskedContact() {
     if (widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty) {
-      // إذا كان رقم الهاتف موجودًا، نعرض آخر 4 أرقام فقط
       if (widget.phoneNumber!.length > 4) {
         return "****${widget.phoneNumber!.substring(widget.phoneNumber!.length - 4)}";
       } else {
         return "****${widget.phoneNumber!}";
       }
     } else if (widget.email != null && widget.email!.isNotEmpty) {
-      // إذا كان البريد الإلكتروني موجودًا، نعرض جزء منه فقط
       final parts = widget.email!.split('@');
       if (parts.length == 2) {
         String username = parts[0];
@@ -111,42 +201,36 @@ class _CodePageState extends State<CodePage> {
       }
       return "****@****";
     }
-    // إذا لم تكن هناك معلومات متاحة
     return "****";
   }
 
   @override
   Widget build(BuildContext context) {
-    // إضافة متغيرات لأحجام الشاشة
     final screenSize = MediaQuery.of(context).size;
     final screenHeight = screenSize.height;
     final screenWidth = screenSize.width;
 
-    // حساب الأحجام النسبية بناءً على حجم الشاشة
     final logoSize = screenHeight * 0.1;
     final contentPadding = EdgeInsets.all(screenWidth * 0.04);
     final inputFieldSize = screenWidth * 0.1;
     final spacingHeight = screenHeight * 0.02;
 
-    // استخدام PopScope بدلاً من WillPopScope لمعالجة الرجوع عند الضغط على زر الرجوع الخاص بنظام Android
     return PopScope(
       canPop: false,
       onPopInvokedWithResult:
           (bool didPop, Future<dynamic> Function(bool)? popResult) async {
         if (didPop) return;
-        // مسح جميع المدخلات والعودة إلى صفحة forget_password عند الضغط على زر الرجوع
         for (var controller in controllers) {
           controller.clear();
         }
-        // استخدام Navigator.pushReplacement بدلاً من pushReplacementNamed
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const ForgetPassword()),
+          MaterialPageRoute(
+              builder: (context) => ForgetPassword(userType: widget.userType)),
         );
       },
       child: Scaffold(
         backgroundColor: const Color(0xFF2F9C95),
-        // إزالة شريط سفلي للتنقل مع زر الرجوع
         body: SafeArea(
           child: SingleChildScrollView(
             child: ConstrainedBox(
@@ -157,7 +241,6 @@ class _CodePageState extends State<CodePage> {
               child: IntrinsicHeight(
                 child: Column(
                   children: [
-                    // إضافة صف يحتوي على زر الرجوع ومنتقي اللغة
                     Padding(
                       padding: EdgeInsets.only(
                           top: screenHeight * 0.02,
@@ -166,66 +249,20 @@ class _CodePageState extends State<CodePage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          // زر الرجوع
                           IconButton(
                             icon: const Icon(Icons.arrow_back,
                                 color: Colors.white),
                             onPressed: () {
-                              // مسح جميع المدخلات والعودة إلى صفحة forget_password
                               for (var controller in controllers) {
                                 controller.clear();
                               }
-                              // استخدام Navigator.pushReplacement بدلاً من pushReplacementNamed
                               Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (context) =>
-                                        const ForgetPassword()),
+                                    builder: (context) => ForgetPassword(
+                                        userType: widget.userType)),
                               );
                             },
-                          ),
-                          // منتقي اللغة
-                          PopupMenuButton<String>(
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    context.locale.languageCode.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const Icon(Icons.keyboard_arrow_down,
-                                      color: Colors.black),
-                                ],
-                              ),
-                            ),
-                            onSelected: (String value) {
-                              context.setLocale(Locale(value));
-                            },
-                            itemBuilder: (BuildContext context) =>
-                                <PopupMenuEntry<String>>[
-                              const PopupMenuItem<String>(
-                                value: 'fr',
-                                child: Text('FR - Français'),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'ar',
-                                child: Text('AR - العربية'),
-                              ),
-                              const PopupMenuItem<String>(
-                                value: 'en',
-                                child: Text('EN - English'),
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -272,7 +309,6 @@ class _CodePageState extends State<CodePage> {
                                         ? 19
                                         : null,
                                     top: 20,
-                                    // تمديد الخط الأخضر ليصل إلى الخطوة 3
                                     bottom: 0,
                                     child: Container(
                                       width: 2,
@@ -290,8 +326,8 @@ class _CodePageState extends State<CodePage> {
                                             height: 40,
                                             child: CircleAvatar(
                                               radius: 14,
-                                              backgroundColor: Color(
-                                                  0xFF2F9C95), // You can choose your color
+                                              backgroundColor:
+                                                  Color(0xFF2F9C95),
                                               child: Text(
                                                 '1',
                                                 style: TextStyle(
@@ -338,8 +374,8 @@ class _CodePageState extends State<CodePage> {
                                             height: 40,
                                             child: CircleAvatar(
                                               radius: 14,
-                                              backgroundColor: Color(
-                                                  0xFF2F9C95), // You can choose your color
+                                              backgroundColor:
+                                                  Color(0xFF2F9C95),
                                               child: Text(
                                                 '2',
                                                 style: TextStyle(
@@ -409,8 +445,17 @@ class _CodePageState extends State<CodePage> {
                                                     width: inputFieldSize,
                                                     height: inputFieldSize,
                                                     decoration: BoxDecoration(
-                                                      color: const Color(
-                                                          0xFFFFD700),
+                                                      color:
+                                                          _verificationError !=
+                                                                      null &&
+                                                                  controllers[
+                                                                          index]
+                                                                      .text
+                                                                      .isNotEmpty
+                                                              ? Colors
+                                                                  .red.shade100
+                                                              : const Color(
+                                                                  0xFFFFD700),
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                               12),
@@ -433,8 +478,9 @@ class _CodePageState extends State<CodePage> {
                                                       ),
                                                       enableInteractiveSelection:
                                                           false,
-                                                      readOnly: index !=
-                                                          _getActiveFieldIndex(),
+                                                      readOnly: _isVerifying ||
+                                                          index !=
+                                                              _getActiveFieldIndex(),
                                                       inputFormatters: [
                                                         FilteringTextInputFormatter
                                                             .digitsOnly,
@@ -442,6 +488,14 @@ class _CodePageState extends State<CodePage> {
                                                             1),
                                                       ],
                                                       onChanged: (value) {
+                                                        if (_verificationError !=
+                                                            null) {
+                                                          setState(() {
+                                                            _verificationError =
+                                                                null;
+                                                          });
+                                                        }
+
                                                         if (value.isNotEmpty) {
                                                           if (index < 3) {
                                                             setState(() {});
@@ -467,8 +521,52 @@ class _CodePageState extends State<CodePage> {
                                                   ),
                                                 ),
                                               ),
+                                              SizedBox(
+                                                  height: screenHeight * 0.01),
+                                              if (_isVerifying)
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    const SizedBox(
+                                                      width: 20,
+                                                      height: 20,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color:
+                                                            Color(0xFF2F9C95),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 10),
+                                                    Text(
+                                                      'verifying'.tr(),
+                                                      style: const TextStyle(
+                                                        color:
+                                                            Color(0xFF2F9C95),
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              if (_verificationError != null &&
+                                                  !_isVerifying)
+                                                Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(vertical: 8.0),
+                                                  child: Text(
+                                                    _verificationError!.tr(),
+                                                    style: const TextStyle(
+                                                      color: Colors.red,
+                                                      fontSize: 14,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
                                               TextButton(
-                                                onPressed: _canResend
+                                                onPressed: _canResend &&
+                                                        !_isVerifying &&
+                                                        !_isSendingCode
                                                     ? resendCode
                                                     : null,
                                                 style: TextButton.styleFrom(
@@ -479,9 +577,13 @@ class _CodePageState extends State<CodePage> {
                                                           .withOpacity(0.6),
                                                 ),
                                                 child: Text(
-                                                  'resend_code'.tr(),
+                                                  _isSendingCode
+                                                      ? 'sending_code'.tr()
+                                                      : 'resend_code'.tr(),
                                                   style: TextStyle(
-                                                      color: _canResend
+                                                      color: _canResend &&
+                                                              !_isVerifying &&
+                                                              !_isSendingCode
                                                           ? const Color(
                                                               0xFF2F9C95)
                                                           : Colors.grey
@@ -621,8 +723,7 @@ class _CodePageState extends State<CodePage> {
                                             height: 40,
                                             child: CircleAvatar(
                                               radius: 14,
-                                              backgroundColor: Colors.grey[
-                                                  200], // You can choose your color
+                                              backgroundColor: Colors.grey[200],
                                               child: Text(
                                                 '3',
                                                 style: TextStyle(
@@ -684,8 +785,9 @@ class _CodePageState extends State<CodePage> {
 
   @override
   void dispose() {
-    // إلغاء العداد عند الخروج من الصفحة
-    _timer.cancel();
+    if (_timer.isActive) {
+      _timer.cancel();
+    }
     for (var controller in controllers) {
       controller.dispose();
     }
@@ -712,20 +814,139 @@ class _CodePageState extends State<CodePage> {
     );
   }
 
-  // إضافة دالة للتحقق من اكتمال الإدخال
-  void _checkForCompletion() {
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.error_outline,
+              color: Colors.red,
+              size: 28,
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'error_title'.tr(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text(
+              'ok'.tr(),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _checkForCompletion() async {
     bool allFieldsFilled =
         controllers.every((controller) => controller.text.isNotEmpty);
+
     if (allFieldsFilled) {
-      // إذا تم إدخال جميع الحقول، ننتقل إلى الشاشة التالية
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) {
-          // التحقق من أن الـ State ما زالت متصلة بالـ Widget
+      String otpCode =
+          controllers.map((controller) => controller.text).join('');
+
+      setState(() {
+        _isVerifying = true;
+        _verificationError = null;
+      });
+
+      try {
+        String? email;
+        String? phoneNumber;
+
+        if (widget.email != null && widget.email!.isNotEmpty) {
+          email = widget.email!.trim().toLowerCase();
+        }
+
+        if (widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty) {
+          String cleanPhone = widget.phoneNumber!.trim();
+          phoneNumber =
+              cleanPhone.startsWith('+') ? cleanPhone : '+222$cleanPhone';
+        }
+
+        debugPrint('Verifying OTP: $otpCode');
+        debugPrint('Email: $email, Phone: $phoneNumber');
+
+        final result = await OTPService.verifyOTP(
+          email: email,
+          phoneNumber: phoneNumber,
+          otpCode: otpCode,
+          userType: widget.userType,
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _isVerifying = false;
+        });
+
+        if (result['success']) {
+          String identifier = (email ?? phoneNumber) ?? '';
+
+          debugPrint('=== OTP VERIFICATION SUCCESSFUL ===');
+          debugPrint('User ID: ${result['user_id']}');
+          debugPrint('Original email: ${widget.email}');
+          debugPrint('Original phone: ${widget.phoneNumber}');
+          debugPrint('Formatted email: $email');
+          debugPrint('Formatted phone: $phoneNumber');
+          debugPrint('Using identifier: $identifier');
+          debugPrint('OTP code: $otpCode');
+
+          debugPrint(
+              '⚠️ هام: نفس رمز OTP مطلوب لإعادة تعيين كلمة المرور، لكنه قد تم تأشيره كمستخدم بالفعل!');
+
+          debugPrint('محاولة إعادة تنشيط رمز OTP...');
+          try {
+            await OTPService.reactivateOTP(
+              email: email,
+              phoneNumber: phoneNumber,
+              otpCode: otpCode,
+              userType: widget.userType,
+            );
+            debugPrint('تمت محاولة إعادة تنشيط OTP بنجاح');
+          } catch (e) {
+            debugPrint('خطأ في إعادة تنشيط OTP: $e');
+          }
+
+          if (!mounted) return;
+
           Navigator.push(
             context,
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  const NewPasswordPage(),
+                  NewPasswordPage(
+                identifier: identifier,
+                otpCode: otpCode,
+                userType: widget.userType,
+                userId: result['user_id'] ?? 0,
+              ),
               transitionsBuilder:
                   (context, animation, secondaryAnimation, child) {
                 const begin = Offset(1.0, 0.0);
@@ -738,8 +959,29 @@ class _CodePageState extends State<CodePage> {
               },
             ),
           );
+        } else {
+          setState(() {
+            _verificationError = result['message'];
+          });
+
+          _showErrorDialog(result['message'].toString().tr());
+
+          for (var controller in controllers) {
+            controller.clear();
+          }
+
+          FocusScope.of(context).requestFocus(FocusNode());
         }
-      });
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          _isVerifying = false;
+          _verificationError = 'system_error';
+        });
+
+        _showErrorDialog('system_error'.tr());
+      }
     }
   }
 }

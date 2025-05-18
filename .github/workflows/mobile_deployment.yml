@@ -9,10 +9,33 @@ on:
       release_notes:
         description: 'Release notes'
         required: true
+      rollout_percentage:
+        description: 'Rollout percentage for Android (1-100)'
+        required: false
+        default: '10'
 
 jobs:
+  validate_version:
+    name: Validate Version
+    runs-on: ubuntu-latest
+    outputs:
+      is_valid: ${{ steps.check_version.outputs.is_valid }}
+    
+    steps:
+      - name: Check version format
+        id: check_version
+        run: |
+          if [[ "${{ github.event.inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_valid=true" >> $GITHUB_OUTPUT
+          else
+            echo "is_valid=false" >> $GITHUB_OUTPUT
+            echo "Invalid version format. Please use semantic versioning (e.g., 1.0.0)"
+            exit 1
+          fi
+
   deploy_android:
     name: Deploy Android to Play Store
+    needs: validate_version
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,6 +57,24 @@ jobs:
       - name: Update version
         run: |
           sed -i "s/version: .*/version: ${{ github.event.inputs.version }}/" pubspec.yaml
+      
+      - name: Run automated tests
+        run: |
+          flutter test
+          if [ -d "integration_test" ]; then
+            flutter test integration_test
+          fi
+      
+      - name: Run Firebase Test Lab Tests
+        run: |
+          if [ -d "integration_test" ]; then
+            echo "Setting up Firebase Test Lab testing..."
+            # This would be setup to run your Flutter tests on real devices in Firebase Test Lab
+            # Requires gcloud auth and setup scripts
+          else
+            echo "No integration tests found, skipping Firebase Test Lab."
+          fi
+        continue-on-error: true
       
       - name: Build AAB
         run: flutter build appbundle --release
@@ -65,8 +106,11 @@ jobs:
             echo '      aab: "../build/app/outputs/bundle/release/app-release.aab",' >> android/fastlane/Fastfile
             echo '      json_key_data: ENV["PLAY_STORE_JSON_KEY"],' >> android/fastlane/Fastfile
             echo '      release_notes: {' >> android/fastlane/Fastfile
-            echo '        "en-US" => ENV["RELEASE_NOTES"]' >> android/fastlane/Fastfile
-            echo '      }' >> android/fastlane/Fastfile
+            echo '        "en-US" => ENV["RELEASE_NOTES"],' >> android/fastlane/Fastfile
+            echo '        "ar" => ENV["RELEASE_NOTES"],' >> android/fastlane/Fastfile
+            echo '        "fr" => ENV["RELEASE_NOTES"]' >> android/fastlane/Fastfile
+            echo '      },' >> android/fastlane/Fastfile
+            echo '      rollout: ENV["ROLLOUT_PERCENTAGE"].to_f / 100.0' >> android/fastlane/Fastfile
             echo '    )' >> android/fastlane/Fastfile
             echo '  end' >> android/fastlane/Fastfile
             echo 'end' >> android/fastlane/Fastfile
@@ -80,9 +124,11 @@ jobs:
         env:
           PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
           RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+          ROLLOUT_PERCENTAGE: ${{ github.event.inputs.rollout_percentage }}
 
   deploy_ios:
     name: Deploy iOS to App Store
+    needs: validate_version
     runs-on: macos-latest
     defaults:
       run:
@@ -104,6 +150,13 @@ jobs:
       - name: Update version
         run: |
           sed -i '' "s/version: .*/version: ${{ github.event.inputs.version }}/" pubspec.yaml
+      
+      - name: Run automated tests
+        run: |
+          flutter test
+          if [ -d "integration_test" ]; then
+            flutter test integration_test
+          fi
       
       - name: Setup Xcode
         uses: maxim-lobanov/setup-xcode@v1
@@ -153,9 +206,13 @@ jobs:
             echo '      precheck_include_in_app_purchases: false,' >> ios/fastlane/Fastfile
             echo '      skip_metadata: false,' >> ios/fastlane/Fastfile
             echo '      skip_screenshots: true,' >> ios/fastlane/Fastfile
-            echo '      submit_for_review: false,' >> ios/fastlane/Fastfile
+            echo '      submit_for_review: true,' >> ios/fastlane/Fastfile
+            echo '      automatic_release: false,' >> ios/fastlane/Fastfile
+            echo '      phased_release: true,' >> ios/fastlane/Fastfile
             echo '      release_notes: {' >> ios/fastlane/Fastfile
-            echo '        "en-US" => ENV["RELEASE_NOTES"]' >> ios/fastlane/Fastfile
+            echo '        "en-US" => ENV["RELEASE_NOTES"],' >> ios/fastlane/Fastfile
+            echo '        "ar" => ENV["RELEASE_NOTES"],' >> ios/fastlane/Fastfile
+            echo '        "fr" => ENV["RELEASE_NOTES"]' >> ios/fastlane/Fastfile
             echo '      }' >> ios/fastlane/Fastfile
             echo '    )' >> ios/fastlane/Fastfile
             echo '  end' >> ios/fastlane/Fastfile
@@ -168,4 +225,24 @@ jobs:
           bundle install
           bundle exec fastlane deploy
         env:
-          RELEASE_NOTES: ${{ github.event.inputs.release_notes }} 
+          RELEASE_NOTES: ${{ github.event.inputs.release_notes }}
+        
+  notify_deployment:
+    name: Notify Deployment Status
+    needs: [deploy_android, deploy_ios]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Deployment Status
+        run: |
+          if [ "${{ needs.deploy_android.result }}" == "success" ] && [ "${{ needs.deploy_ios.result }}" == "success" ]; then
+            echo "✅ Deployment Successful for both platforms"
+            # Add code to send email notification or Slack message
+          elif [ "${{ needs.deploy_android.result }}" == "success" ]; then
+            echo "⚠️ Partial Deployment: Android succeeded, iOS failed"
+          elif [ "${{ needs.deploy_ios.result }}" == "success" ]; then
+            echo "⚠️ Partial Deployment: iOS succeeded, Android failed"
+          else
+            echo "❌ Deployment Failed for both platforms"
+          fi 

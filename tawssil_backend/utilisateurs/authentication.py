@@ -7,17 +7,8 @@ def custom_user_authentication_rule(user):
     """
     قاعدة مخصصة للتحقق من المستخدم في SimpleJWT
     """
-    # إذا كان المستخدم هو رمز عددي (id_utilisateur)، نقوم بالبحث عن المستخدم المناسب
-    if isinstance(user, int):
-        try:
-            user = Utilisateur.objects.get(id_utilisateur=user)
-        except Utilisateur.DoesNotExist:
-            raise exceptions.AuthenticationFailed('لا يوجد مستخدم نشط بهذا المعرف')
-    
-    # نتحقق من وجود المستخدم وأنه نشط
-    if user is not None and user.is_active:
-        return True
-    return False
+    # تحقق من أن المستخدم نشط
+    return user is not None and user.is_active
 
 class CustomJWTAuthentication(JWTAuthentication):
     def get_user(self, validated_token):
