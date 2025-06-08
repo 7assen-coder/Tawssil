@@ -7,6 +7,7 @@ import 'homeapp.dart';
 import 'driver_homeapp.dart';
 import 'services/auth_service.dart';
 import 'language_selection_dialog.dart';
+import 'package:flutter/foundation.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -290,7 +291,7 @@ class _HomePageState extends State<HomePage>
                 child: Transform.scale(
                   scale: value,
                   child: Image.asset(
-                    'assets/images/Groupes@4x.png',
+                    'assets/images/Tawssil@logo.png',
                     width: 200,
                     height: 200,
                   ),
@@ -333,7 +334,7 @@ class _HomePageState extends State<HomePage>
                   // Logo
                   Center(
                     child: Image.asset(
-                      'assets/images/Groupes@4x.png',
+                      'assets/images/Tawssil@logo.png',
                       width: 120,
                       height: 120,
                     ),
@@ -698,9 +699,530 @@ class _HomePageState extends State<HomePage>
                                         _isLoading = false;
                                       });
 
-                                      if (result['success']) {
+                                      if (result['status'] == 'inactive' &&
+                                          _selectedUserType == 'Client') {
+                                        await showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (context) => Dialog(
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            elevation: 0,
+                                            backgroundColor: Colors.transparent,
+                                            child: SingleChildScrollView(
+                                              child: ConstrainedBox(
+                                                constraints: BoxConstraints(
+                                                  maxWidth:
+                                                      MediaQuery.of(context)
+                                                              .size
+                                                              .width *
+                                                          0.95,
+                                                  minWidth: 200,
+                                                ),
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.all(20),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withOpacity(0.1),
+                                                        spreadRadius: 1,
+                                                        blurRadius: 10,
+                                                        offset:
+                                                            const Offset(0, 3),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(15),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.red
+                                                              .withOpacity(0.1),
+                                                          shape:
+                                                              BoxShape.circle,
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.block,
+                                                          color: Colors.red,
+                                                          size: 40,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 20),
+                                                      Text(
+                                                        'account_restricted_title'
+                                                            .tr(),
+                                                        style: const TextStyle(
+                                                          fontSize: 24,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors.red,
+                                                        ),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        softWrap: true,
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 15),
+                                                      Container(
+                                                        height: 1,
+                                                        color: Colors.grey
+                                                            .withOpacity(0.2),
+                                                        margin: const EdgeInsets
+                                                            .symmetric(
+                                                            vertical: 15),
+                                                      ),
+                                                      Container(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .all(15),
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors.grey
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(10),
+                                                        ),
+                                                        child: Column(
+                                                          children: [
+                                                            const Icon(
+                                                              Icons
+                                                                  .info_outline,
+                                                              color: Colors.red,
+                                                              size: 24,
+                                                            ),
+                                                            const SizedBox(
+                                                                height: 10),
+                                                            Text(
+                                                              'client_account_restricted_message'
+                                                                  .tr(),
+                                                              style:
+                                                                  const TextStyle(
+                                                                fontSize: 16,
+                                                                color: Colors
+                                                                    .black87,
+                                                                height: 1.5,
+                                                              ),
+                                                              textAlign:
+                                                                  TextAlign
+                                                                      .center,
+                                                              softWrap: true,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      const SizedBox(
+                                                          height: 25),
+                                                      SizedBox(
+                                                        width: double.infinity,
+                                                        child: ElevatedButton(
+                                                          onPressed: () {
+                                                            Navigator.of(
+                                                                    context,
+                                                                    rootNavigator:
+                                                                        true)
+                                                                .pop();
+                                                          },
+                                                          style: ElevatedButton
+                                                              .styleFrom(
+                                                            backgroundColor:
+                                                                Colors.red,
+                                                            foregroundColor:
+                                                                Colors.white,
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    vertical:
+                                                                        15),
+                                                            shape:
+                                                                RoundedRectangleBorder(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          10),
+                                                            ),
+                                                            elevation: 0,
+                                                          ),
+                                                          child: Text(
+                                                            'ok'.tr(),
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 16,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      } else if (result['success']) {
                                         // تم تسجيل الدخول بنجاح
-                                        final user = result['user'] as User;
+                                        final userData = result['user'];
+                                        if (kDebugMode) {
+                                          debugPrint('USER DATA: $userData');
+                                        }
+
+                                        // تحويل userData إلى كائن User
+                                        final user = User.fromJson(userData,
+                                            result['tokens']?['access'] ?? '');
+
+                                        final userType = user.userType;
+                                        final statut =
+                                            userData['statut_verification'];
+                                        final raisonRefus =
+                                            userData['raison_refus'];
+
+                                        if (kDebugMode) {
+                                          debugPrint(
+                                              'userType: $userType, statut: $statut');
+                                        }
+
+                                        // التحقق من حالة السائق أولاً
+                                        if (userType == 'Chauffeur' ||
+                                            userType == 'Livreur') {
+                                          final statutStr = statut
+                                                  ?.toString()
+                                                  .toLowerCase() ??
+                                              '';
+                                          if (statutStr.contains('refus')) {
+                                            if (kDebugMode) {
+                                              debugPrint(
+                                                  'RAISON REFUS: $raisonRefus');
+                                            }
+                                            await showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (context) => Dialog(
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(20),
+                                                ),
+                                                elevation: 0,
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                child: SingleChildScrollView(
+                                                  child: ConstrainedBox(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.95,
+                                                      minWidth: 200,
+                                                    ),
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              20),
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(20),
+                                                        boxShadow: [
+                                                          BoxShadow(
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                    0.1),
+                                                            spreadRadius: 1,
+                                                            blurRadius: 10,
+                                                            offset:
+                                                                const Offset(
+                                                                    0, 3),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      child: Column(
+                                                        mainAxisSize:
+                                                            MainAxisSize.min,
+                                                        children: [
+                                                          // أيقونة الحظر
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(15),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors.red
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons.block,
+                                                              color: Colors.red,
+                                                              size: 40,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 20),
+                                                          // العنوان
+                                                          Text(
+                                                            'account_restricted_title'
+                                                                .tr(),
+                                                            style:
+                                                                const TextStyle(
+                                                              fontSize: 24,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              color: Colors.red,
+                                                            ),
+                                                            textAlign: TextAlign
+                                                                .center,
+                                                            softWrap: true,
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 15),
+                                                          // خط فاصل
+                                                          Container(
+                                                            height: 1,
+                                                            color: Colors.grey
+                                                                .withOpacity(
+                                                                    0.2),
+                                                            margin:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                                    vertical:
+                                                                        15),
+                                                          ),
+                                                          // رسالة الرفض
+                                                          Container(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .all(15),
+                                                            decoration:
+                                                                BoxDecoration(
+                                                              color: Colors.grey
+                                                                  .withOpacity(
+                                                                      0.1),
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                          10),
+                                                            ),
+                                                            child: Column(
+                                                              children: [
+                                                                const Icon(
+                                                                  Icons
+                                                                      .info_outline,
+                                                                  color: Colors
+                                                                      .red,
+                                                                  size: 24,
+                                                                ),
+                                                                const SizedBox(
+                                                                    height: 10),
+                                                                Text(
+                                                                  '${'account_restricted_message'.tr()} ${raisonRefus ?? '-'}',
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        16,
+                                                                    color: Colors
+                                                                        .black87,
+                                                                    height: 1.5,
+                                                                  ),
+                                                                  textAlign:
+                                                                      TextAlign
+                                                                          .center,
+                                                                  softWrap:
+                                                                      true,
+                                                                ),
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          const SizedBox(
+                                                              height: 25),
+                                                          // زر الموافقة
+                                                          SizedBox(
+                                                            width:
+                                                                double.infinity,
+                                                            child:
+                                                                ElevatedButton(
+                                                              onPressed: () {
+                                                                Navigator.of(
+                                                                        context,
+                                                                        rootNavigator:
+                                                                            true)
+                                                                    .pop();
+                                                              },
+                                                              style:
+                                                                  ElevatedButton
+                                                                      .styleFrom(
+                                                                backgroundColor:
+                                                                    Colors.red,
+                                                                foregroundColor:
+                                                                    Colors
+                                                                        .white,
+                                                                padding:
+                                                                    const EdgeInsets
+                                                                        .symmetric(
+                                                                        vertical:
+                                                                            15),
+                                                                shape:
+                                                                    RoundedRectangleBorder(
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              10),
+                                                                ),
+                                                                elevation: 0,
+                                                              ),
+                                                              child: Text(
+                                                                'ok'.tr(),
+                                                                style:
+                                                                    const TextStyle(
+                                                                  fontSize: 16,
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                            return; // منع الانتقال إلى الصفحة التالية
+                                          } else if (statutStr
+                                              .contains('attent')) {
+                                            showDialog(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (context) => AlertDialog(
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            18)),
+                                                backgroundColor: Colors.white,
+                                                title: Row(
+                                                  children: [
+                                                    const Icon(
+                                                        Icons.info_outline,
+                                                        color:
+                                                            Color(0xFF2F9C95),
+                                                        size: 28),
+                                                    const SizedBox(width: 10),
+                                                    Flexible(
+                                                      child: Text(
+                                                        'account_review_title'
+                                                            .tr(),
+                                                        style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 20,
+                                                          color:
+                                                              Color(0xFF2F9C95),
+                                                        ),
+                                                        maxLines: 2,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                content: SingleChildScrollView(
+                                                  child: ConstrainedBox(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth:
+                                                          MediaQuery.of(context)
+                                                                  .size
+                                                                  .width *
+                                                              0.8,
+                                                    ),
+                                                    child: Column(
+                                                      mainAxisSize:
+                                                          MainAxisSize.min,
+                                                      children: [
+                                                        SizedBox(
+                                                          height: 80,
+                                                          child: Lottie.asset(
+                                                            'assets/animations/hourglass.json',
+                                                            repeat: true,
+                                                            animate: true,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 18),
+                                                        Text(
+                                                          'account_review_message'
+                                                              .tr(),
+                                                          style:
+                                                              const TextStyle(
+                                                                  fontSize: 16,
+                                                                  color: Colors
+                                                                      .black87),
+                                                          textAlign:
+                                                              TextAlign.center,
+                                                          softWrap: true,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.pop(context),
+                                                    style: TextButton.styleFrom(
+                                                      foregroundColor:
+                                                          Colors.white,
+                                                      backgroundColor:
+                                                          const Color(
+                                                              0xFF2F9C95),
+                                                      shape:
+                                                          RoundedRectangleBorder(
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(10),
+                                                      ),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 24,
+                                                          vertical: 10),
+                                                    ),
+                                                    child: Text(
+                                                      'ok'.tr(),
+                                                      style: const TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          fontSize: 16),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                            return;
+                                          }
+                                        }
 
                                         // عرض رسالة نجاح
                                         ScaffoldMessenger.of(context)
@@ -720,24 +1242,21 @@ class _HomePageState extends State<HomePage>
                                             MaterialPageRoute(
                                               builder: (context) => HomeApp(
                                                 userIdentifier:
-                                                    user.email.isNotEmpty
-                                                        ? user.email
-                                                        : user.phone,
+                                                    _getUserIdentifier(user),
                                                 userData: user,
                                               ),
                                             ),
                                           );
-                                        } else {
-                                          // توجيه السائق إلى صفحة السائقين
+                                        } else if (statut != 'Refusé' &&
+                                            statut != 'En attente') {
+                                          // توجيه السائق إلى صفحة السائقين فقط إذا لم يكن مرفوضاً أو في انتظار
                                           Navigator.pushReplacement(
                                             context,
                                             MaterialPageRoute(
                                               builder: (context) =>
                                                   DriverHomeApp(
                                                 userIdentifier:
-                                                    user.email.isNotEmpty
-                                                        ? user.email
-                                                        : user.phone,
+                                                    _getUserIdentifier(user),
                                                 userData: user,
                                               ),
                                             ),
@@ -885,5 +1404,10 @@ class _HomePageState extends State<HomePage>
         },
       ),
     );
+  }
+
+  // دالة مساعدة للحصول على معرف المستخدم
+  String _getUserIdentifier(User user) {
+    return user.email.isNotEmpty ? user.email : user.phone;
   }
 }

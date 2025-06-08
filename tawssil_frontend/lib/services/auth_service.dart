@@ -11,6 +11,8 @@ class User {
   final String userType;
   final bool isStaff;
   final String token;
+  final String? statutVerification;
+  final String? raisonRefus;
 
   User({
     required this.id,
@@ -20,6 +22,8 @@ class User {
     required this.userType,
     required this.isStaff,
     required this.token,
+    this.statutVerification,
+    this.raisonRefus,
   });
 
   factory User.fromJson(Map<String, dynamic> userData, String token) {
@@ -31,6 +35,8 @@ class User {
       userType: userData['type_utilisateur'] ?? '',
       isStaff: userData['is_staff'] ?? false,
       token: token,
+      statutVerification: userData['statut_verification'],
+      raisonRefus: userData['raison_refus'],
     );
   }
 }
@@ -142,6 +148,16 @@ class AuthService {
         final responseData = jsonDecode(response.body);
         debugPrint('JSON keys: ${responseData.keys.toList()}');
 
+        // معالجة حالة الحساب غير النشط
+        if (responseData['status'] == 'inactive') {
+          return {
+            'success': false,
+            'status': 'inactive',
+            'user': responseData['user'],
+            'message': responseData['message'] ?? '',
+          };
+        }
+
         // التحقق من الاستجابة
         if (response.statusCode == 200) {
           debugPrint('Successful response with status 200');
@@ -151,8 +167,6 @@ class AuthService {
               responseData['status'] == 'success') {
             debugPrint('Using new API response format');
             final userData = responseData['user'];
-            final tokensData = responseData['tokens'];
-            final token = tokensData['access'] ?? '';
 
             // التحقق من تطابق نوع الحساب إذا كان قد تم تحديد نوع
             if (userType != null && userType.isNotEmpty) {
@@ -181,7 +195,7 @@ class AuthService {
 
             return {
               'success': true,
-              'user': User.fromJson(userData, token),
+              'user': userData,
               'message': 'login_success',
             };
           }
@@ -190,8 +204,6 @@ class AuthService {
               responseData.containsKey('data')) {
             debugPrint('Using old API response format with tokens and data');
             final userData = responseData['data'];
-            final tokensData = responseData['tokens'];
-            final token = tokensData['access'] ?? '';
 
             // التحقق من تطابق نوع الحساب إذا كان قد تم تحديد نوع
             if (userType != null && userType.isNotEmpty) {
@@ -220,7 +232,7 @@ class AuthService {
 
             return {
               'success': true,
-              'user': User.fromJson(userData, token),
+              'user': userData,
               'message': 'login_success',
             };
           } else {
@@ -520,4 +532,73 @@ class AuthService {
   }
 
   // ملاحظة: تم إزالة دالة _sendRealEmailWithOTP لأن API الأساسي يعمل بشكل جيد
+
+  // دالة لتسجيل السائق (Livreur أو Chauffeur) مع جميع الحقول والصور
+  Future<Map<String, dynamic>> registerDriver({
+    required String userType,
+    required String email,
+    required String phone,
+    required String fullName,
+    required String dob,
+    required String password,
+    required String adresse,
+    required String matriculeVehicule,
+    required String typeVehicule,
+    required String zoneCouverture,
+    required String startTime,
+    required String endTime,
+    required dynamic profilePicture, // File
+    required dynamic photoVehicule,
+    required dynamic photoPermis,
+    required dynamic photoCarteGrise,
+    required dynamic photoAssurance,
+    required dynamic photoVignette,
+    required dynamic photoCarteMunicipale,
+  }) async {
+    try {
+      var uri = Uri.parse('$baseUrl/api/complete-registration/');
+      var request = http.MultipartRequest('POST', uri);
+      request.fields.addAll({
+        'user_type': userType,
+        'full_name': fullName,
+        'email': email,
+        'phone': phone,
+        'birth_date': dob,
+        'password': password,
+        'adresse': adresse,
+        'matricule_vehicule': matriculeVehicule,
+        'type_vehicule': typeVehicule,
+        'zone_couverture': zoneCouverture,
+        'start_time': startTime,
+        'end_time': endTime,
+      });
+      if (profilePicture != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+            'photo_profile', profilePicture.path));
+      }
+      request.files.addAll([
+        await http.MultipartFile.fromPath('photo_vehicule', photoVehicule.path),
+        await http.MultipartFile.fromPath('photo_permis', photoPermis.path),
+        await http.MultipartFile.fromPath(
+            'photo_carte_grise', photoCarteGrise.path),
+        await http.MultipartFile.fromPath(
+            'photo_assurance', photoAssurance.path),
+        await http.MultipartFile.fromPath('photo_vignette', photoVignette.path),
+        await http.MultipartFile.fromPath(
+            'photo_carte_municipale', photoCarteMunicipale.path),
+      ]);
+      var streamedResponse = await request.send();
+      var responseData = await streamedResponse.stream.bytesToString();
+      var decodedResponse = json.decode(responseData);
+      return {
+        'statusCode': streamedResponse.statusCode,
+        'data': decodedResponse,
+      };
+    } catch (e) {
+      return {
+        'statusCode': 500,
+        'data': {'message': e.toString()},
+      };
+    }
+  }
 }

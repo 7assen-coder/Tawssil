@@ -166,7 +166,7 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
                         ],
                       ),
                       child: Image.asset(
-                        'assets/images/Groupes@4x.png',
+                        'assets/images/Tawssil@logo.png',
                         height: 80,
                         width: 80,
                       ),
@@ -310,14 +310,14 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
                                       children: [
                                         Text(
                                           'متابعة',
-                                          style:  TextStyle(
+                                          style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
                                           ),
                                         ),
-                                         SizedBox(width: 8),
-                                         Icon(
+                                        SizedBox(width: 8),
+                                        Icon(
                                           Icons.arrow_forward,
                                           color: Colors.white,
                                           size: 18,

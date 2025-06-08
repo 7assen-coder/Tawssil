@@ -1,0 +1,172 @@
+.sidebar {
+  width: 80px;
+  height: 100vh;
+  background-color: #fff;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  /* لإظهار شريط التمرير عند الحاجة */
+  overscroll-behavior: contain;
+}
+
+.sidebar-header {
+  padding: 20px 0;
+  text-align: center;
+  background-color: #4861F5;
+  color: white;
+  height: 80px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo-icon {
+  font-size: 28px;
+  color: white;
+}
+
+.sidebar-menu {
+  flex: 1;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  color: #666;
+  text-decoration: none;
+  transition: all 0.3s;
+  cursor: pointer;
+  margin: 10px 0;
+  border-radius: 50%;
+}
+
+.sidebar-item:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.sidebar-item.active {
+  color: #4861F5;
+  background-color: #f0f4ff;
+}
+
+.sidebar-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  font-size: 2.1rem;
+}
+
+.sidebar-footer {
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #f0f0f0;
+  margin-top: auto;
+  align-items: flex-end;
+}
+
+.sidebar-footer .sidebar-item {
+  color: #F43B3B;
+}
+
+.sidebar-footer .sidebar-item:hover {
+  background-color: rgba(244, 59, 59, 0.1);
+}
+
+/* إضافة هامش للمحتوى الرئيسي */
+.main-content {
+  margin-left: 80px;
+}
+
+/* الاستجابة للأجهزة المحمولة */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    z-index: 2000;
+    overflow-y: auto;
+  }
+  .sidebar-header {
+    height: 60px;
+    padding: 10px 0;
+  }
+  .sidebar-menu {
+    padding: 10px 0;
+  }
+  .sidebar-footer {
+    padding: 10px 0;
+    margin-top: auto;
+    align-items: flex-end;
+  }
+  .main-content {
+    margin-left: 60px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    overflow: hidden;
+    box-shadow: none;
+  }
+  .sidebar.open {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.08);
+    background: #fff;
+    transition: all 0.3s;
+    overflow-y: auto;
+  }
+  .sidebar-footer {
+    margin-top: auto;
+    align-items: flex-end;
+  }
+}
+
+/* زر إظهار/إخفاء الشريط الجانبي على الموبايل */
+.sidebar-toggle-btn {
+  display: none;
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 2100;
+  background: #4861F5;
+  color: #fff;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(72,97,245,0.15);
+}
+@media (max-width: 480px) {
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+} 

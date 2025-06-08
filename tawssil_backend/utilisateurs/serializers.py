@@ -21,14 +21,11 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = Utilisateur
         fields = [
             'username', 'email', 'password', 'telephone', 
-            'type_utilisateur', 'date_naissance', 'photo_profile',
-            'is_staff', 'is_superuser'
+            'type_utilisateur', 'date_naissance', 'photo_profile'
         ]
         extra_kwargs = {
             'password': {'write_only': True},
-            'photo_profile': {'required': False},
-            'is_staff': {'required': False},
-            'is_superuser': {'required': False}
+            'photo_profile': {'required': False}
         }
 
     def create(self, validated_data):
@@ -47,17 +44,11 @@ def create_jwt_token(user):
     """
     إنشاء توكن JWT متوافق مع rest_framework_simplejwt
     """
-    # تخصيص RefreshToken.for_user لتتناسب مع نموذج Utilisateur
     refresh = RefreshToken.for_user(user)
-    
-    # إضافة معلومات إضافية عن المستخدم
     refresh['id_utilisateur'] = user.id_utilisateur
     refresh['email'] = user.email
     refresh['username'] = user.username
     refresh['type_utilisateur'] = user.type_utilisateur
-    refresh['is_staff'] = user.is_staff
-    
-    # إعادة التوكن كنص
     return str(refresh.access_token), str(refresh)
 
 def jwt_decode_handler(token):
@@ -82,32 +73,22 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
-
         if not email:
             raise serializers.ValidationError({
                 'error': 'يجب توفير البريد الإلكتروني'
             })
-
         if not password:
             raise serializers.ValidationError({
                 'error': 'كلمة المرور مطلوبة'
             })
-
-        # البحث عن المستخدم باستخدام البريد الإلكتروني
-            user = Utilisateur.objects.filter(email=email, is_active=True).first()
-
+        user = Utilisateur.objects.filter(email=email, is_active=True).first()
         if not user or not user.check_password(password):
             raise serializers.ValidationError({
                 'error': 'لا يوجد حساب نشط بهذه البيانات'
             })
-
-        # تحديث آخر تسجيل دخول
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
-
-        # إنشاء توكن
         access_token, refresh_token = create_jwt_token(user)
-        
         return {
             'refresh': refresh_token,
             'access': access_token,
@@ -115,8 +96,7 @@ class MyTokenObtainPairSerializer(serializers.Serializer):
                 'id_utilisateur': user.id_utilisateur,
                 'username': user.username,
                 'email': user.email,
-                'type_utilisateur': user.type_utilisateur,
-                'is_staff': user.is_staff
+                'type_utilisateur': user.type_utilisateur
             }
         }
 
@@ -187,7 +167,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = Utilisateur
         fields = [
             'id_utilisateur', 'username', 'email', 'telephone', 'adresse',
-            'type_utilisateur', 'is_staff', 'is_active', 'date_joined',
+            'type_utilisateur', 'is_active', 'date_joined',
             'last_login', 'date_naissance', 'photo_profile'
         ]
         read_only_fields = ['id_utilisateur', 'date_joined', 'last_login']
@@ -199,8 +179,9 @@ class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Utilisateur
         fields = [
-            'id_utilisateur', 'username', 'email', 'telephone', 
-            'type_utilisateur', 'is_active', 'date_joined'
+            'id_utilisateur', 'username', 'email', 'telephone', 'adresse',
+            'type_utilisateur', 'is_active', 'date_joined',
+            'last_login', 'date_naissance', 'photo_profile'
         ]
 
 class UserUpdateSerializer(serializers.ModelSerializer):
@@ -211,14 +192,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         model = Utilisateur
         fields = [
             'username', 'email', 'telephone', 'adresse',
-            'date_naissance', 'photo_profile'
+            'date_naissance', 'photo_profile', 'is_active'
         ]
         extra_kwargs = {
             'email': {'required': False},
             'telephone': {'required': False},
             'adresse': {'required': False},
             'date_naissance': {'required': False},
-            'photo_profile': {'required': False}
+            'photo_profile': {'required': False},
+            'is_active': {'required': False},
         }
 
 class ClientSerializer(serializers.ModelSerializer):

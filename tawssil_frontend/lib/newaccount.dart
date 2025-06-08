@@ -471,7 +471,7 @@ class _NewAccountState extends State<NewAccount> {
                 height: screenHeight * 0.12,
                 child: Center(
                   child: Image.asset(
-                    'assets/images/Groupes@4x.png',
+                    'assets/images/Tawssil@logo.png',
                     width: screenWidth * 0.25,
                     height: screenWidth * 0.25,
                     fit: BoxFit.contain,

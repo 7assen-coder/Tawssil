@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'package:lottie/lottie.dart';
 import 'homeapp.dart';
 import 'services/auth_service.dart';
+import 'driver_info.dart';
 
 class Selfie extends StatefulWidget {
   final String userType;
@@ -151,6 +152,23 @@ class _SelfieState extends State<Selfie> {
     );
   }
 
+  // إنشاء الحساب بالصورة الافتراضية عند الضغط على "تخطي"
+  Future<void> _createAccountWithDefaultImage() async {
+    // التحقق من نوع المستخدم
+    if (widget.userType == 'Livreur' || widget.userType == 'Chauffeur') {
+      _showErrorDialog('profile_picture_required'.tr());
+      return;
+    }
+
+    // تعيين الصورة إلى null لاستخدام الصورة الافتراضية
+    setState(() {
+      _selectedImage = null;
+    });
+
+    // استدعاء دالة إنشاء الحساب
+    await _createAccountWithImage();
+  }
+
   // إنشاء الحساب باستخدام الصورة المحددة
   Future<void> _createAccountWithImage() async {
     if (mounted) {
@@ -160,7 +178,31 @@ class _SelfieState extends State<Selfie> {
     }
 
     try {
-      // إعداد بيانات التسجيل
+      // التحقق من نوع المستخدم
+      if (widget.userType == 'Livreur' || widget.userType == 'Chauffeur') {
+        if (mounted) {
+          setState(() {
+            _isCreatingAccount = false;
+          });
+          // توجيه السائق إلى صفحة إكمال المعلومات
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => DriverInfo(
+                userType: widget.userType,
+                email: widget.email,
+                phone: widget.phone,
+                fullName: widget.fullName,
+                dob: widget.dob,
+                password: widget.password,
+                profilePicture: _selectedImage,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // إعداد بيانات التسجيل للمستخدمين الآخرين
       final userData = {
         'user_type': widget.userType,
         'full_name': widget.fullName,
@@ -251,20 +293,11 @@ class _SelfieState extends State<Selfie> {
     }
   }
 
-  // إنشاء الحساب بالصورة الافتراضية عند الضغط على "تخطي"
-  Future<void> _createAccountWithDefaultImage() async {
-    // تعيين الصورة إلى null لاستخدام الصورة الافتراضية
-    setState(() {
-      _selectedImage = null;
-    });
-
-    // استدعاء دالة إنشاء الحساب
-    await _createAccountWithImage();
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final bool isDriver =
+        widget.userType == 'Livreur' || widget.userType == 'Chauffeur';
 
     return Scaffold(
       backgroundColor: const Color(0xFF2F9C95),
@@ -276,7 +309,7 @@ class _SelfieState extends State<Selfie> {
               padding: const EdgeInsets.symmetric(vertical: 30),
               child: Center(
                 child: Image.asset(
-                  'assets/images/Groupes@4x.png',
+                  'assets/images/Tawssil@logo.png',
                   width: 110,
                   height: 110,
                 ),
@@ -472,37 +505,39 @@ class _SelfieState extends State<Selfie> {
                                                         const SizedBox(
                                                             height: 15),
                                                         // إضافة زر تخطي لاستخدام الصورة الافتراضية
-                                                        InkWell(
-                                                          onTap:
-                                                              _createAccountWithDefaultImage,
-                                                          child: Container(
-                                                            width:
-                                                                double.infinity,
-                                                            height: 50,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                              color: Colors.grey
-                                                                  .shade300,
-                                                              borderRadius:
-                                                                  BorderRadius
-                                                                      .circular(
-                                                                          8),
-                                                            ),
-                                                            child: Center(
-                                                              child: Text(
-                                                                'skip'.tr(),
-                                                                style:
-                                                                    const TextStyle(
-                                                                  color: Colors
-                                                                      .black54,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
+                                                        if (!isDriver)
+                                                          InkWell(
+                                                            onTap:
+                                                                _createAccountWithDefaultImage,
+                                                            child: Container(
+                                                              width: double
+                                                                  .infinity,
+                                                              height: 50,
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Colors
+                                                                    .grey
+                                                                    .shade300,
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            8),
+                                                              ),
+                                                              child: Center(
+                                                                child: Text(
+                                                                  'skip'.tr(),
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    color: Colors
+                                                                        .black54,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                  ),
                                                                 ),
                                                               ),
                                                             ),
                                                           ),
-                                                        ),
                                                       ],
                                                     )
                                                   : Column(

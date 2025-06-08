@@ -64,9 +64,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/Groupes@4x.png"
+  image_path: "assets/images/Tawssil@logo.png"
   adaptive_icon_background: "#2F9C95"
-  adaptive_icon_foreground: "assets/images/Groupes@4x.png"
+  adaptive_icon_foreground: "assets/images/Tawssil@logo.png"
   min_sdk_android: 21
   remove_alpha_ios: true
   web:
@@ -92,6 +92,7 @@ flutter:
     - assets/images/
     - assets/translations/
     - assets/animations/
+    - assets/animations/hourglass.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

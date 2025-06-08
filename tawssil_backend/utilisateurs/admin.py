@@ -18,7 +18,7 @@ class UtilisateurChangeForm(UserChangeForm):
     """
     class Meta:
         model = Utilisateur
-        fields = ('username', 'email', 'password', 'type_utilisateur', 'is_active', 'is_staff', 'is_superuser')
+        fields = ('username', 'email', 'password', 'type_utilisateur', 'is_active')
 
 class UtilisateurAdmin(admin.ModelAdmin):
     # استخدام نماذج الإدارة المخصصة
@@ -32,7 +32,7 @@ class UtilisateurAdmin(admin.ModelAdmin):
     search_fields = ('username', 'email', 'telephone')
     
     # الحقول التي يمكن التصفية بها في الجانب
-    list_filter = ('type_utilisateur', 'is_active', 'is_staff')
+    list_filter = ('type_utilisateur', 'is_active')
     
     # تجميع الحقول في أقسام عند العرض/التعديل
     fieldsets = (
@@ -43,7 +43,7 @@ class UtilisateurAdmin(admin.ModelAdmin):
             'fields': ('type_utilisateur',)
         }),
         ('حالة الحساب', {
-            'fields': ('is_active', 'is_staff', 'is_superuser')
+            'fields': ('is_active',)
         }),
         ('معلومات النظام', {
             'fields': ('date_joined', 'last_login', 'last_modified'),
@@ -55,7 +55,7 @@ class UtilisateurAdmin(admin.ModelAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2', 'type_utilisateur', 'is_active', 'is_staff', 'is_superuser'),
+            'fields': ('username', 'email', 'password1', 'password2', 'type_utilisateur', 'is_active'),
         }),
     )
     
@@ -174,7 +174,7 @@ class ChauffeurAdmin(admin.ModelAdmin):
     toggle_availability.short_description = "تبديل حالة التوفر للسائقين المحددين"
 
 class AdministrateurAdmin(admin.ModelAdmin):
-    list_display = ('id', 'display_username', 'display_email', 'display_is_staff')
+    list_display = ('id', 'display_username', 'display_email', 'display_is_staff', 'display_is_superuser')
     search_fields = ('utilisateur__username', 'utilisateur__email')
     
     def display_username(self, obj):
@@ -186,15 +186,24 @@ class AdministrateurAdmin(admin.ModelAdmin):
     display_email.short_description = 'Email'
     
     def display_is_staff(self, obj):
-        return obj.utilisateur.is_staff if obj.utilisateur else False
+        return obj.is_staff
     display_is_staff.short_description = 'Is Staff'
     display_is_staff.boolean = True
 
+    def display_is_superuser(self, obj):
+        return obj.is_superuser
+    display_is_superuser.short_description = 'Is Superuser'
+    display_is_superuser.boolean = True
+
 class FournisseurAdmin(admin.ModelAdmin):
-    list_display = ('id', 'display_email', 'nom_commerce', 'type_fournisseur')
+    list_display = ('get_id_utilisateur', 'nom_commerce', 'type_fournisseur')
     search_fields = ('utilisateur__username', 'utilisateur__email', 'nom_commerce')
     list_filter = ('type_fournisseur',)
     
+    def get_id_utilisateur(self, obj):
+        return obj.utilisateur.id_utilisateur if obj.utilisateur else None
+    get_id_utilisateur.short_description = 'ID Utilisateur'
+
     def display_email(self, obj):
         return obj.utilisateur.email if obj.utilisateur else 'Unknown'
     display_email.short_description = 'Email'

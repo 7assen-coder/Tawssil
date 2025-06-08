@@ -303,7 +303,7 @@ class _NewPasswordPageState extends State<NewPasswordPage> {
                   padding: const EdgeInsets.symmetric(vertical: 30),
                   child: Center(
                     child: Image.asset(
-                      'assets/images/Groupes@4x.png',
+                      'assets/images/Tawssil@logo.png',
                       width: screenHeight * 0.12,
                       height: screenHeight * 0.12,
                     ),

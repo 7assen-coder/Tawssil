@@ -1,0 +1,300 @@
+.driver-management-page {
+  width: 100%;
+}
+
+.page-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 25px;
+}
+
+.card {
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.status-en-attente {
+  background-color: #ffecb3;
+  color: #ff8f00;
+}
+
+.status-approuvé {
+  background-color: #e0f2f1;
+  color: #00897b;
+}
+
+.status-refusé {
+  background-color: #ffebee;
+  color: #d32f2f;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  font-size: 20px;
+  color: #6c757d;
+}
+
+/* تنسيقات لعرض تفاصيل السائق وأوراق التقديم */
+.driver-details-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.driver-details-title .MuiSvgIcon-root {
+  margin-left: 12px;
+  color: #3f51b5;
+  font-size: 28px;
+}
+
+.driver-details-title span {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.section-title {
+  font-weight: bold;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  color: #3f51b5;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background-color: #3f51b5;
+  margin-left: 8px;
+  border-radius: 2px;
+}
+
+.info-section {
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+}
+
+.info-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.info-icon {
+  margin-left: 12px;
+  color: #3f51b5;
+  background-color: rgba(63, 81, 181, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+/* أيقونات حالة التوفر */
+.available-icon {
+  background-color: rgba(76, 175, 80, 0.08) !important;
+  color: #4CAF50 !important;
+}
+
+.unavailable-icon {
+  background-color: rgba(244, 67, 54, 0.08) !important;
+  color: #F44336 !important;
+}
+
+.info-item-reject {
+  display: flex;
+  align-items: flex-start;
+  margin: 12px 0;
+  padding: 16px;
+  border-radius: 8px;
+  background-color: #ffebee;
+  border-right: 4px solid #d32f2f;
+}
+
+.info-icon-reject {
+  margin-left: 12px;
+  color: #d32f2f;
+  background-color: rgba(211, 47, 47, 0.08);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+}
+
+.documents-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+  margin-bottom: 20px;
+}
+
+.document-thumbnail {
+  width: 140px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background-color: white;
+}
+
+.document-thumbnail:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+  border-color: #bbdefb;
+}
+
+.thumbnail-placeholder {
+  background-color: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border-radius: 4px;
+  border: 1px dashed #ccc;
+  margin-bottom: 10px;
+}
+
+.thumbnail-placeholder .MuiSvgIcon-root {
+  font-size: 38px;
+  color: #757575;
+}
+
+.thumbnail-title {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+.rejection-reason-hint {
+  font-size: 11px;
+  color: #d32f2f;
+  margin-top: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* تنسيقات إضافية للنافذة الحوارية */
+.MuiDialogTitle-root {
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.MuiDialogContent-root {
+  padding: 20px 24px !important;
+}
+
+.MuiDialogActions-root {
+  padding: 16px 24px;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* تحسينات التجاوب */
+@media (max-width: 1200px) {
+  .info-section .MuiGrid-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 960px) {
+  .card {
+    padding: 15px;
+  }
+
+  .info-section {
+    padding: 12px;
+  }
+
+  .info-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .info-icon {
+    margin-bottom: 8px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-buttons button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .page-title {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .driver-details-title {
+    font-size: 16px;
+  }
+
+  .section-title {
+    font-size: 14px;
+  }
+
+  .info-section {
+    padding: 10px;
+  }
+
+  .info-item {
+    margin-bottom: 8px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+}
+
+/* تحسينات للشاشات الكبيرة */
+@media (min-width: 1200px) {
+  .card {
+    max-width: 1400px;
+    margin: 0 auto 20px;
+  }
+} 

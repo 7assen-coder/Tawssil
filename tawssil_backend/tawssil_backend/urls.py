@@ -8,8 +8,26 @@ from utilisateurs.views import (
     update_user, delete_user, bulk_delete_users, login_user, 
     check_user_exists, send_otp_email, send_otp_sms, verify_otp,
     reset_password, reactivate_otp,
-    register_otp_email, register_otp_sms, complete_registration
+    register_otp_email, register_otp_sms, complete_registration,
+    create_driver, list_drivers, pending_drivers_count,
+    providers_stats,
+    users_stats,
+    update_driver_status,
+    clients_table_stats,
+    create_provider,
+    update_provider,
+    verify_provider,
+    delete_provider,
+    liste_administrateurs,
+    create_admin,
+    check_admin_exists,
+    update_admin,
+    delete_admin,
+    validate_token,
+    clients_and_drivers,
+    list_all_otp_codes,
 )
+from commandes.views import active_deliveries_count, last_month_active_deliveries_count
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -46,6 +64,27 @@ urlpatterns = [
     # واجهات OTP الجديدة للمستخدمين الجدد في مرحلة التسجيل
     path('api/register-otp-email/', register_otp_email, name='register_otp_email'),
     path('api/register-otp-sms/', register_otp_sms, name='register_otp_sms'),
+    path('api/create-driver/', create_driver, name='create_driver'),
+    path('api/list-drivers/', list_drivers, name='list_drivers'),
+    path('api/pending-drivers-count/', pending_drivers_count, name='pending_drivers_count'),
+    path('api/commandes/active-deliveries-count/', active_deliveries_count, name='active_deliveries_count'),
+    path('api/commandes/last-month-active-deliveries-count/', last_month_active_deliveries_count, name='last_month_active_deliveries_count'),
+    path('api/providers-stats/', providers_stats, name='providers_stats'),
+    path('api/users-stats/', users_stats, name='users_stats'),
+    path('api/update-driver-status/<int:driver_id>/', update_driver_status, name='update_driver_status'),
+    path('api/clients-table-stats/', clients_table_stats, name='clients_table_stats'),
+    path('api/create-provider/', create_provider, name='create_provider'),
+    path('api/providers/<int:provider_id>/update/', update_provider, name='update_provider'),
+    path('api/providers/<int:provider_id>/verify/', verify_provider, name='verify_provider'),
+    path('api/providers/<int:provider_id>/delete/', delete_provider, name='delete_provider'),
+    path('api/administrateurs/', liste_administrateurs, name='liste_administrateurs'),
+    path('api/create-admin/', create_admin, name='create_admin'),
+    path('api/check-admin-exists/', check_admin_exists, name='check_admin_exists'),
+    path('api/administrateurs/<int:admin_id>/update/', update_admin, name='update_admin'),
+    path('api/administrateurs/<int:admin_id>/delete/', delete_admin, name='delete_admin'),
+    path('api/validate-token/', validate_token, name='validate_token'),
+    path('api/utilisateurs/clients-drivers/', clients_and_drivers, name='clients_and_drivers'),
+    path('api/otp-codes/', list_all_otp_codes, name='list_all_otp_codes'),
 ]
 
 if settings.DEBUG:

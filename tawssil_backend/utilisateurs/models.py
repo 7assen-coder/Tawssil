@@ -25,15 +25,17 @@ class Utilisateur(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(max_length=128)
     telephone = models.CharField(max_length=20)
     adresse = models.CharField(max_length=255, blank=True, null=True)
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
     date_naissance = models.DateField(null=True, blank=True)
     photo_profile = models.ImageField(upload_to='utilisateurs/photos/profiles', null=True, blank=True)
     type_utilisateur = models.CharField(max_length=20, choices=TYPE_UTILISATEUR_CHOICES)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     last_login = models.DateTimeField(null=True, blank=True)
     last_modified = models.DateTimeField(auto_now=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
     
     objects = UtilisateurManager()
     
@@ -167,6 +169,8 @@ class Administrateur(models.Model):
         null=True,  # جعل الحقل قابل للعدم مؤقتًا
         blank=True
     )
+    is_staff = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=True)
     
     def __str__(self):
         return f"Admin: {self.utilisateur.username if self.utilisateur else 'Unknown'}"

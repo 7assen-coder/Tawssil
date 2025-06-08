@@ -200,4 +200,47 @@ abstract class LocaleKeys {
   static const error_verifying_code = 'error_verifying_code';
   static const error_sending_code = 'error_sending_code';
   static const error_resending_code = 'error_resending_code';
+  static const complete_driver_info = 'complete_driver_info';
+  static const vehicle_plate = 'vehicle_plate';
+  static const vehicle_plate_required = 'vehicle_plate_required';
+  static const start_time = 'start_time';
+  static const end_time = 'end_time';
+  static const select_time = 'select_time';
+  static const vehicle_photo = 'vehicle_photo';
+  static const license_photo = 'license_photo';
+  static const registration_card = 'registration_card';
+  static const insurance_photo = 'insurance_photo';
+  static const sticker_photo = 'sticker_photo';
+  static const municipal_card = 'municipal_card';
+  static const add_photo = 'add_photo';
+  static const choose_image_source = 'choose_image_source';
+  static const camera = 'camera';
+  static const gallery = 'gallery';
+  static const all_photos_required = 'all_photos_required';
+  static const working_hours_required = 'working_hours_required';
+  static const complete_registration = 'complete_registration';
+  static const registration_completed = 'registration_completed';
+  static const error_image_pick = 'error_image_pick';
+  static const error_completing_registration = 'error_completing_registration';
+  static const disponibilite = 'disponibilite';
+  static const available = 'available';
+  static const unavailable = 'unavailable';
+  static const type_vehicule = 'type_vehicule';
+  static const vehicle_type_required = 'vehicle_type_required';
+  static const driver_type_required = 'driver_type_required';
+  static const driver_type = 'driver_type';
+  static const adresse = 'adresse';
+  static const adresse_required = 'adresse_required';
+  static const zone_couverture = 'zone_couverture';
+  static const coverage_zone_required = 'coverage_zone_required';
+  static const driver_registration_thank_you_title =
+      'driver_registration_thank_you_title';
+  static const driver_registration_thank_you_message =
+      'driver_registration_thank_you_message';
+  static const account_review_title = 'account_review_title';
+  static const account_review_message = 'account_review_message';
+  static const account_restricted_title = 'account_restricted_title';
+  static const account_restricted_message = 'account_restricted_message';
+  static const client_account_restricted_message =
+      'client_account_restricted_message';
 }

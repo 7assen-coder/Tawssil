@@ -236,7 +236,7 @@ class _CodeVerificationState extends State<CodeVerification> {
                 padding: const EdgeInsets.symmetric(vertical: 30),
                 child: Center(
                   child: Image.asset(
-                    'assets/images/Groupes@4x.png',
+                    'assets/images/Tawssil@logo.png',
                     width: 110,
                     height: 110,
                   ),

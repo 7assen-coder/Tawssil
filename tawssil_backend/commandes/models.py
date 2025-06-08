@@ -110,6 +110,13 @@ class Colis(models.Model):
 
 class Voyage(models.Model):
     """نموذج رحلة المستخدم"""
+    STATUT_CHOICES = [
+        ('En attente', 'En attente'),
+        ('Acceptée', 'Acceptée'),
+        ('En route', 'En route'),
+        ('Terminée', 'Terminée'),
+        ('Annulée', 'Annulée'),
+    ]
     id_voyage = models.AutoField(primary_key=True)
     voyageur = models.ForeignKey('utilisateurs.Client', on_delete=models.CASCADE)
     destination = models.CharField(max_length=255)
@@ -117,6 +124,7 @@ class Voyage(models.Model):
     date_arrivee = models.DateTimeField()
     poids_disponible = models.FloatField()
     tarif_transport = models.FloatField()
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='En attente')
     
     def __str__(self):
         return f"Voyage vers {self.destination} le {self.date_depart}"

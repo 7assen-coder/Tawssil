@@ -272,7 +272,7 @@ class _CodePageState extends State<CodePage> {
                           EdgeInsets.symmetric(vertical: screenHeight * 0.03),
                       child: Center(
                         child: Image.asset(
-                          'assets/images/Groupes@4x.png',
+                          'assets/images/Tawssil@logo.png',
                           width: logoSize,
                           height: logoSize,
                         ),

@@ -308,7 +308,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
                 child: Image.asset(
-                  'assets/images/Groupes@4x.png',
+                  'assets/images/Tawssil@logo.png',
                   width: 110,
                   height: 110,
                 ),
