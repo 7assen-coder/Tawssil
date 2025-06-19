@@ -34,7 +34,7 @@ const Dashboard = () => {
     deliveries: [],
     revenue: [],
     dailyDeliveries: [],
-    weeklyRevenue: []
+    voyagesData: []
   });
 
   // عدد الطلبات في الشهر الماضي (يمكنك تعديله لاحقاً أو جلبه من API)
@@ -136,153 +136,92 @@ const Dashboard = () => {
         }));
       });
 
+    // Fetch recent livraisons (deliveries) data
     fetch('http://localhost:8000/api/commandes/recent-livreur-livraisons/')
       .then(res => res.json())
       .then(data => {
         setRecentLivreurLivraisons(data);
         
-        // تحويل البيانات للرسوم البيانية
-        const chartData = data.map(item => ({
-          id: item.id_commande,
-          name: item.client_username || 'Client',
-          montant: item.montant_total,
-          date: new Date(item.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
-        }));
+        // Process data for charts - group by date and calculate daily totals
+        const deliveriesByDate = data.reduce((acc, item) => {
+          const date = new Date(item.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+          
+          if (!acc[date]) {
+            acc[date] = {
+              date: date,
+              count: 0,
+              montant: 0
+            };
+          }
+          
+          acc[date].count += 1;
+          acc[date].montant += parseFloat(item.montant_total) || 0;
+          
+          return acc;
+        }, {});
+        
+        // Convert to array and sort by date
+        const chartData = Object.values(deliveriesByDate)
+          .sort((a, b) => {
+            // Extract day number for sorting
+            const dayA = parseInt(a.date.match(/\d+/)[0]);
+            const dayB = parseInt(b.date.match(/\d+/)[0]);
+            return dayA - dayB;
+          })
+          .slice(-7); // Get last 7 days
         
         setStatisticsData(prev => ({
           ...prev,
-          deliveries: chartData
+          dailyDeliveries: chartData
         }));
       });
 
+    // Fetch recent voyages data
     fetch('http://localhost:8000/api/commandes/recent-voyages/')
       .then(res => res.json())
       .then(data => {
         setRecentVoyages(data);
         
-        // تحويل البيانات للرسوم البيانية
-        const chartData = data.map(item => ({
-          id: item.id_voyage,
-          name: item.voyageur_username || 'Voyageur',
-          tarif: item.tarif_transport,
-          date: new Date(item.date_depart).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
-        }));
+        // Process data for charts - group by date and calculate daily totals
+        const voyagesByDate = data.reduce((acc, item) => {
+          const date = new Date(item.date_depart).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' });
+          
+          if (!acc[date]) {
+            acc[date] = {
+              date: date,
+              count: 0,
+              distance: 0,
+              tarif: 0
+            };
+          }
+          
+          acc[date].count += 1;
+          acc[date].tarif += parseFloat(item.tarif_transport) || 0;
+          
+          // Extract distance if available
+          if (item.distance) {
+            acc[date].distance += parseFloat(item.distance) || 0;
+          }
+          
+          return acc;
+        }, {});
+        
+        // Convert to array and sort by date
+        const chartData = Object.values(voyagesByDate)
+          .sort((a, b) => {
+            // Extract day number for sorting
+            const dayA = parseInt(a.date.match(/\d+/)[0]);
+            const dayB = parseInt(b.date.match(/\d+/)[0]);
+            return dayA - dayB;
+          })
+          .slice(-10); // Get last 10 days
         
         setStatisticsData(prev => ({
           ...prev,
-          revenue: chartData
-        }));
-      });
-
-    // Fetch daily deliveries data for trend chart
-    fetch('http://localhost:8000/api/commandes/daily-deliveries/')
-      .then(res => res.json())
-      .then(data => {
-        // If the API doesn't exist yet, this is simulated data
-        // In a real implementation, this would come from the backend
-        const dailyData = data.daily_data || generateDailyDeliveriesData();
-        
-        setStatisticsData(prev => ({
-          ...prev,
-          dailyDeliveries: dailyData
-        }));
-      })
-      .catch(() => {
-        // Fallback to simulated data if API doesn't exist
-        const simulatedData = generateDailyDeliveriesData();
-        setStatisticsData(prev => ({
-          ...prev,
-          dailyDeliveries: simulatedData
-        }));
-      });
-
-    // Fetch weekly revenue data for trend chart
-    fetch('http://localhost:8000/api/commandes/weekly-revenue/')
-      .then(res => res.json())
-      .then(data => {
-        // If the API doesn't exist yet, this is simulated data
-        // In a real implementation, this would come from the backend
-        const weeklyData = data.weekly_data || generateWeeklyRevenueData();
-        
-        setStatisticsData(prev => ({
-          ...prev,
-          weeklyRevenue: weeklyData
-        }));
-      })
-      .catch(() => {
-        // Fallback to simulated data if API doesn't exist
-        const simulatedData = generateWeeklyRevenueData();
-        setStatisticsData(prev => ({
-          ...prev,
-          weeklyRevenue: simulatedData
+          voyagesData: chartData
         }));
       });
   }, []);
-
-  // Generate simulated data for daily deliveries (to be replaced with real API data)
-  const generateDailyDeliveriesData = () => {
-    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-    const currentDate = new Date();
-    const currentDay = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ...
-    
-    return days.map((day, index) => {
-      // Generate data with realistic fluctuations
-      const baseValue = 120; // Base number of deliveries
-      const dayOffset = (index + 1) % 7; // Adjust for days of week (Monday = 0)
-      
-      // Create a pattern: higher on weekends, lower on Tuesdays
-      let multiplier = 1;
-      if (dayOffset === 5 || dayOffset === 6) { // Weekend (Sat, Sun)
-        multiplier = 1.5;
-      } else if (dayOffset === 1) { // Tuesday
-        multiplier = 0.7;
-      } else if (dayOffset === 3) { // Thursday
-        multiplier = 1.2;
-      }
-      
-      // Add some randomness
-      const randomFactor = 0.8 + Math.random() * 0.4; // Between 0.8 and 1.2
-      
-      // Calculate final value with some randomness
-      const value = Math.round(baseValue * multiplier * randomFactor);
-      
-      // Highlight the current day
-      const isToday = (dayOffset === currentDay);
-      
-      return {
-        name: day,
-        deliveries: value,
-        isToday: isToday
-      };
-    });
-  };
-
-  // Generate simulated data for weekly revenue (to be replaced with real API data)
-  const generateWeeklyRevenueData = () => {
-    const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-    
-    return weeks.map((week, index) => {
-      // Generate data with realistic fluctuations
-      const baseRevenue = 5000; // Base revenue
-      
-      // Create a pattern: growth trend with a dip in week 3
-      let multiplier = 1 + (index * 0.15); // Growth trend
-      if (index === 2) { // Week 3 dip
-        multiplier = 0.9;
-      }
-      
-      // Add some randomness
-      const randomFactor = 0.9 + Math.random() * 0.2; // Between 0.9 and 1.1
-      
-      // Calculate final value with some randomness
-      const value = Math.round(baseRevenue * multiplier * randomFactor);
-      
-      return {
-        name: week,
-        revenue: value
-      };
-    });
-  };
 
   useEffect(() => {
     setIsLoading(false);
@@ -317,6 +256,22 @@ const Dashboard = () => {
   };
 
   const isSmallScreen = window.innerWidth <= 768;
+
+  // Calculate totals for chart footers
+  const totalDailyDeliveries = statisticsData.dailyDeliveries.reduce(
+    (sum, item) => sum + (item.count || 0), 
+    0
+  );
+  
+  const totalVoyages = statisticsData.voyagesData.reduce(
+    (sum, item) => sum + (item.count || 0), 
+    0
+  );
+  
+  const totalVoyagesTarif = statisticsData.voyagesData.reduce(
+    (sum, item) => sum + (item.tarif || 0), 
+    0
+  );
 
   return (
     <div className="dashboard-page">
@@ -466,7 +421,7 @@ const Dashboard = () => {
                   >
                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
                     <XAxis 
-                      dataKey="name" 
+                      dataKey="date" 
                       axisLine={false} 
                       tickLine={false}
                       tick={{ fontSize: 11 }}
@@ -479,8 +434,8 @@ const Dashboard = () => {
                     <Tooltip content={<CustomTooltip />} />
                     <Line 
                       type="monotone" 
-                      dataKey="deliveries" 
-                      name="Livraisons" 
+                      dataKey="count" 
+                      name="Nombre de livraisons" 
                       stroke="#1976d2" 
                       strokeWidth={2}
                       dot={{ r: 4, fill: "#1976d2" }}
@@ -490,54 +445,77 @@ const Dashboard = () => {
                 </ResponsiveContainer>
               </div>
               <div className="chart-footer">
-                <span>Tendance hebdomadaire</span>
-                <span>Total: {statisticsData.dailyDeliveries.reduce((sum, item) => sum + item.deliveries, 0)}</span>
+                <span>Données des 7 derniers jours</span>
+                <span>Total: {totalDailyDeliveries} livraisons</span>
               </div>
             </div>
             
-            {/* Revenus hebdomadaires */}
+            {/* Voyages quotidiens */}
             <div className="statistic-card">
-              <h3 className="statistic-card-header">Revenus hebdomadaires</h3>
+              <h3 className="statistic-card-header">Voyages quotidiens</h3>
               <div className="line-chart-container">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart 
-                    data={statisticsData.weeklyRevenue}
+                    data={statisticsData.voyagesData}
                     margin={{ top: 5, right: 20, bottom: 20, left: 0 }}
                   >
                     <defs>
-                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ff9800" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#ff9800" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorTarif" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#43a047" stopOpacity={0.8}/>
                         <stop offset="95%" stopColor="#43a047" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
                     <XAxis 
-                      dataKey="name" 
+                      dataKey="date" 
                       axisLine={false} 
                       tickLine={false}
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis 
+                      yAxisId="left"
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis 
+                      yAxisId="right"
+                      orientation="right"
                       axisLine={false} 
                       tickLine={false}
                       tick={{ fontSize: 11 }}
                     />
                     <Tooltip content={<CustomTooltip />} />
                     <Area 
+                      yAxisId="left"
                       type="monotone" 
-                      dataKey="revenue" 
-                      name="Revenus" 
-                      stroke="#43a047" 
+                      dataKey="count" 
+                      name="Nombre de voyages" 
+                      stroke="#ff9800" 
                       fillOpacity={1}
-                      fill="url(#colorRevenue)"
+                      fill="url(#colorCount)"
                       strokeWidth={2}
+                    />
+                    <Line 
+                      yAxisId="right"
+                      type="monotone" 
+                      dataKey="tarif" 
+                      name="Tarif (DZD)" 
+                      stroke="#43a047" 
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#43a047" }}
+                      activeDot={{ r: 6, fill: "#43a047" }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
               <div className="chart-footer">
-                <span>Tendance mensuelle</span>
-                <span>Total: ${statisticsData.weeklyRevenue.reduce((sum, item) => sum + item.revenue, 0)}</span>
+                <span>Total: {totalVoyages} voyages</span>
+                <span>Tarif total: {Math.round(totalVoyagesTarif)} DZD</span>
               </div>
             </div>
           </div>
