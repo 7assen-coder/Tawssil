@@ -17,6 +17,7 @@ class CodegenLoader extends AssetLoader {
   static const Map<String, dynamic> _ar = {
     "login": "تسجيل الدخول",
     "welcome": "مرحبا بك",
+    "welcome_to_tawssil": "مرحبا بك في توصيل",
     "description":
         "طلبك أينما كنت، بسرعة وأمان. راحتك هي أولويتنا، وسرعتنا هي ميزتنا",
     "phone_email": "رقم الهاتف أو البريد الإلكتروني",
@@ -25,7 +26,7 @@ class CodegenLoader extends AssetLoader {
     "login_button": "تسجيل الدخول",
     "new_account": "حساب جديد",
     "create_account": "إنشاء حساب",
-    "start_journey": "ابدأ رحلتك مع توسيل في خطوة واحدة",
+    "start_journey": "ابدأ رحلتك مع توصيل في خطوة واحدة",
     "closer_with_twsil": "مع توصيل، كل شيء أقرب إليك",
     "step1": "الخطوة 1",
     "full_name": "الاسم الكامل",
@@ -264,11 +265,69 @@ class CodegenLoader extends AssetLoader {
     "account_restricted_title": "تم تقييد حسابك مؤقتًا",
     "account_restricted_message": "تم تقييد حسابك مؤقتًا بسبب: ",
     "client_account_restricted_message":
-        "تم تقييد حسابك بسبب مخالفة شروط الاستخدام. إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع الدعم الفني."
+        "تم تقييد حسابك بسبب مخالفة شروط الاستخدام. إذا كنت تعتقد أن هذا خطأ، يرجى التواصل مع الدعم الفني.",
+    "new_rides": "الرحلات الجديدة",
+    "new_ride": "جديد",
+    "accept_ride": "قبول الرحلة",
+    "ride_stats": "إحصائيات رحلاتك",
+    "total_rides": "الرحلات",
+    "current_rides": "الرحلة الحالية",
+    "ride_id": "رقم الرحلة",
+    "pickup_point": "نقطة الانطلاق",
+    "dropoff_point": "نقطة الوصول",
+    "in_progress_ride": "قيد التنفيذ",
+    "navigate_ride": "توجيه",
+    "complete_ride": "إتمام",
+    "completed_ride": "مكتملة",
+    "ride_history": "سجل الرحلات",
+    "my_rides": "رحلاتي",
+    "all_statuses": "كل الحالات",
+    "no_rides_found": "لا توجد رحلات في هذا اليوم",
+    "app_instructions_title": "كيفية استخدام التطبيق",
+    "app_instructions_chauffeur":
+        "كسائق ، اقبل الرحلات، اتبع الخريطة، وكن دائمًا في الوقت المحدد.",
+    "app_instructions_livreur":
+        "كمُوصّل ، اقبل الطلبات، استلم الأغراض من المزودين، وقم بالتوصيل بأمان.",
+    "app_instructions_deal_customers":
+        "تواصل دائمًا بأدب مع العملاء وتأكد من التفاصيل قبل البدء.",
+    "app_instructions_rights":
+        "لضمان حقك وحق العميل، لا تقبل أي مبلغ نقدي خارج التطبيق واتبِع دائمًا إجراءات التطبيق.",
+    "app_instructions_scan_qr":
+        "عند نهاية كل رحلة أو توصيل، يجب عليك مسح رمز QR من هاتف العميل لتأكيد الإنهاء.",
+    "chat_instructions_title": "تعليمات المحادثة",
+    "chat_instructions_admin":
+        "يمكنك التواصل مع فريق دعم التطبيق لأي مشكلة تقنية أو طارئة. استخدم لغة مهذبة وقدم تفاصيل واضحة لتسريع المساعدة.",
+    "chat_instructions_clients":
+        "تواصل مع العملاء لتأكيد تفاصيل الطلب أو الرحلة، الموقع، ووقت التسليم. حافظ دائمًا على الاحترافية في المحادثة.",
+    "chat_instructions_tips":
+        "ملاحظة: لا تشارك رقم هاتفك الشخصي. جميع المحادثات يجب أن تتم عبر التطبيق لضمان الأمان.",
+    "ride": "رحلة",
+    "rides": "الرحلات",
+    "no_orders_found": "لا توجد طلبات",
+    "all": "الكل",
+    "start_date": "تاريخ البداية",
+    "end_date": "تاريخ النهاية",
+    "status": "الحالة",
+    "history": "السجل",
+    "current": "الحالي",
+    "clear_filters": "مسح التصفية",
+    "edit_profile_popup_title": "تعديل الملف الشخصي",
+    "edit_profile_popup_desc": "قم بتحديث معلوماتك الشخصية",
+    "matricule_vehicule": "رقم لوحة المركبة",
+    "matricule_invalid": "رقم اللوحة غير صالح",
+    "photo_vehicule": "صورة المركبة",
+    "photo_permis": "صورة رخصة القيادة",
+    "photo_carte_grise": "صورة البطاقة الرمادية",
+    "photo_assurance": "صورة التأمين",
+    "photo_vignette": "صورة الملصق",
+    "photo_carte_municipale": "صورة البطاقة البلدية",
+    "work_time": "ساعات العمل",
+    "you_are_here": "أنت هنا"
   };
   static const Map<String, dynamic> _en = {
     "login": "Login",
     "welcome": "Welcome!",
+    "welcome_to_tawssil": "Welcome to Tawssil",
     "description":
         "Your order, wherever you are. Your comfort is our priority, and our speed is our advantage",
     "phone_email": "Phone number or email",
@@ -276,10 +335,11 @@ class CodegenLoader extends AssetLoader {
     "forgot_password": "Forgot Password?",
     "login_button": "Login",
     "new_account": "New Account?",
-    "start_message":
-        "Start your journey with Twsil in one step\nWith Twsil, everything is closer to you",
+    "create_account": "CREATE ACCOUNT",
     "start_journey": "Start your journey with Twsil in one step",
     "closer_with_twsil": "With Twsil. Everything is closer to you",
+    "start_message":
+        "Start your journey with Twsil in one step\nWith Twsil, everything is closer to you",
     "step1": "STEP 1",
     "step_1": "STEP 1",
     "personal_info": "PERSONAL INFORMATION",
@@ -304,7 +364,6 @@ class CodegenLoader extends AssetLoader {
     "sending_code": "Sending code...",
     "success_title": "Success",
     "submit": "Submit",
-    "create_account": "CRÉER UN COMPTE",
     "success_completed": "SUCCESSFULLY COMPLETED",
     "verification_sent": "Verification code has been sent to :",
     "verification_sent_success": "Verification code sent successfully",
@@ -387,7 +446,7 @@ class CodegenLoader extends AssetLoader {
     "wrong_password": "Incorrect password",
     "account_inactive": "Account is inactive, please contact support",
     "try_again": "An error occurred, please try again",
-    "unknown_error": "Unknown error occurred, please try again later",
+    "unknown_error": "An unknown error occurred, please try again later",
     "welcome_user": "Welcome ",
     "checking_account": "Checking account existence...",
     "login_as": "Login as",
@@ -411,12 +470,6 @@ class CodegenLoader extends AssetLoader {
     "map": "Map",
     "chat": "Chat",
     "profile": "Profile",
-    "invalid_otp_code": "Invalid verification code, please try again",
-    "otp_sent": "Verification code sent successfully",
-    "otp_failed": "Failed to send verification code, please try again",
-    "verification_code_sent": "Verification code sent successfully",
-    "incomplete_code": "Please enter the complete code",
-    "invalid_code": "Invalid verification code",
     "too_many_attempts": "Too many attempts, please wait",
     "wait_time": "Wait time",
     "seconds": "s",
@@ -429,11 +482,9 @@ class CodegenLoader extends AssetLoader {
     "reset_password": "Reset password",
     "user_not_found":
         "No account found with this information, please check your details",
-    "user_id_not_available":
-        "Impossible de récupérer l'identifiant de l'utilisateur, veuillez réessayer",
-    "password_reset_success": "Le mot de passe a été réinitialisé avec succès",
-    "password_reset_failed":
-        "Échec de la réinitialisation du mot de passe, veuillez réessayer",
+    "user_id_not_available": "Unable to retrieve user ID, please try again",
+    "password_reset_success": "Password has been reset successfully",
+    "password_reset_failed": "Password reset failed, please try again",
     "driver_status": "Driver Status",
     "status_online": "Online",
     "status_offline": "Offline",
@@ -509,23 +560,81 @@ class CodegenLoader extends AssetLoader {
     "driver_type": "Driver Type",
     "adresse": "Address",
     "adresse_required": "Address is required",
-    "zone_couverture": "Coverage Zone",
+    "zone_couverture": "Coverage zone",
     "coverage_zone_required": "Coverage zone is required",
     "driver_registration_thank_you_title": "Thank you for registering!",
     "driver_registration_thank_you_message":
-        "Your request has been received successfully. We will review your information and activate your account upon approval. Thank you for joining our team!",
-    "account_review_title": "Account under review",
+        "Votre demande a été reçue avec succès. Nous examinerons vos informations et activerons votre compte après approbation. Merci d'avoir rejoint notre équipe !",
+    "account_review_title": "Compte en cours de vérification",
     "account_review_message":
-        "Your account will be activated after admin review. Please wait.",
-    "account_restricted_title": "Your account has been temporarily restricted",
+        "Votre compte sera activé après vérification par l'administration. Veuillez patienter.",
+    "account_restricted_title": "Votre compte a été temporairement restreint",
     "account_restricted_message":
-        "Your account has been temporarily restricted due to:",
+        "Votre compte a été temporairement restreint pour la raison suivante :",
     "client_account_restricted_message":
-        "Your account has been restricted due to violating the terms of use. If you think otherwise, please contact technical support."
+        "Your account has been restricted for violating the terms of use. If you believe this is incorrect, please contact technical support.",
+    "new_rides": "New Rides",
+    "new_ride": "New",
+    "accept_ride": "Accept Ride",
+    "ride_stats": "Your ride statistics",
+    "total_rides": "Rides",
+    "current_rides": "Current ride",
+    "ride_id": "Ride ID",
+    "pickup_point": "Pickup point",
+    "dropoff_point": "Dropoff point",
+    "in_progress_ride": "In progress",
+    "navigate_ride": "Navigate",
+    "complete_ride": "Complete",
+    "completed_ride": "Completed",
+    "ride_history": "Ride history",
+    "my_rides": "My rides",
+    "all_statuses": "All statuses",
+    "no_rides_found": "No rides found for this day",
+    "app_instructions_title": "How to use the app",
+    "app_instructions_chauffeur":
+        "En tant que Chauffeur, acceptez les courses, suivez la carte et soyez toujours ponctuel.",
+    "app_instructions_livreur":
+        "En tant que Livreur, acceptez les commandes, récupérez les articles chez les fournisseurs et livrez-les en toute sécurité.",
+    "app_instructions_deal_customers":
+        "Communiquez toujours poliment avec les clients et confirmez les détails avant de commencer.",
+    "app_instructions_rights":
+        "Pour garantir vos droits et ceux du client, n'acceptez jamais d'argent en dehors de l'application et suivez toujours les procédures de l'application.",
+    "app_instructions_scan_qr":
+        "À la fin de chaque course ou livraison, vous devez scanner le QR code depuis le téléphone du client pour confirmer la finalisation.",
+    "chat_instructions_title": "Comment utiliser le chat",
+    "chat_instructions_admin":
+        "You can contact app support for any technical or urgent issues. Use polite language and provide details for faster assistance.",
+    "chat_instructions_clients":
+        "Communicate with customers to confirm order/ride details, location, and delivery time. Always keep the conversation professional.",
+    "chat_instructions_tips":
+        "Tip: Never share your personal phone number. All communications should be through the app for your safety.",
+    "ride": "Ride",
+    "rides": "Rides",
+    "no_orders_found": "No orders found",
+    "all": "All",
+    "start_date": "Start Date",
+    "end_date": "End Date",
+    "status": "Status",
+    "history": "History",
+    "current": "Current",
+    "clear_filters": "Clear Filters",
+    "edit_profile_popup_title": "Edit Profile",
+    "edit_profile_popup_desc": "Update your personal information",
+    "matricule_vehicule": "Vehicle Plate",
+    "matricule_invalid": "Invalid plate number",
+    "photo_vehicule": "Vehicle Photo",
+    "photo_permis": "License Photo",
+    "photo_carte_grise": "Registration Card",
+    "photo_assurance": "Insurance Photo",
+    "photo_vignette": "Sticker Photo",
+    "photo_carte_municipale": "Municipal Card",
+    "work_time": "Working Hours",
+    "you_are_here": "You are here"
   };
   static const Map<String, dynamic> _fr = {
     "login": "Connexion",
     "welcome": "Bienvenue!",
+    "welcome_to_tawssil": "Bienvenue à Tawssil",
     "description":
         "Votre commande, où que vous soyez. Votre confort est notre priorité, et notre rapidité est notre atout",
     "phone_email": "Numéro de téléphone ou e-mail",
@@ -553,8 +662,9 @@ class CodegenLoader extends AssetLoader {
     "sending_code": "Envoi du code...",
     "success_title": "Succès",
     "submit": "Envoyer",
+    "you_are_here": "Vous êtes ici",
     "create_account": "CRÉER UN COMPTE",
-    "success_completed": "TERMINÉ AVEC SUCCÈS",
+    "step1_completed": "ÉTAPE 1 TERMINÉE AVEC SUCCÈS",
     "verification_sent": "Le code de vérification a été envoyé à :",
     "verification_sent_success": "Code de vérification envoyé avec succès",
     "wait_before_requesting_again":
@@ -777,7 +887,63 @@ class CodegenLoader extends AssetLoader {
     "account_restricted_message":
         "Votre compte a été temporairement restreint pour la raison suivante :",
     "client_account_restricted_message":
-        "Votre compte a été restreint pour violation des conditions d'utilisation. Si vous pensez le contraire, veuillez contacter le support technique."
+        "Votre compte a été restreint pour violation des conditions d'utilisation. Si vous pensez le contraire, veuillez contacter le support technique.",
+    "new_rides": "Nouvelles Courses",
+    "new_ride": "Nouveau",
+    "accept_ride": "Accepter la course",
+    "ride_stats": "Vos statistiques de courses",
+    "total_rides": "Courses",
+    "current_rides": "Course en cours",
+    "ride_id": "ID Course",
+    "pickup_point": "Point de départ",
+    "dropoff_point": "Point d'arrivée",
+    "in_progress_ride": "En cours",
+    "navigate_ride": "Naviguer",
+    "complete_ride": "Terminer",
+    "completed_ride": "Terminé",
+    "ride_history": "Historique des courses",
+    "my_rides": "Mes courses",
+    "all_statuses": "Tous les statuts",
+    "no_rides_found": "Aucune course trouvée pour ce jour",
+    "app_instructions_title": "Comment utiliser l'application",
+    "app_instructions_chauffeur":
+        "En tant que Chauffeur, acceptez les courses, suivez la carte et soyez toujours ponctuel.",
+    "app_instructions_livreur":
+        "En tant que Livreur, acceptez les commandes, récupérez les articles chez les fournisseurs et livrez-les en toute sécurité.",
+    "app_instructions_deal_customers":
+        "Communiquez toujours poliment avec les clients et confirmez les détails avant de commencer.",
+    "app_instructions_rights":
+        "Pour garantir vos droits et ceux du client, n'acceptez jamais d'argent en dehors de l'application et suivez toujours les procédures de l'application.",
+    "app_instructions_scan_qr":
+        "À la fin de chaque course ou livraison, vous devez scanner le QR code depuis le téléphone du client pour confirmer la finalisation.",
+    "chat_instructions_title": "Comment utiliser le chat",
+    "chat_instructions_admin":
+        "Vous pouvez contacter le support de l'application pour tout problème technique ou urgent. Utilisez un langage poli et fournissez des détails pour une aide plus rapide.",
+    "chat_instructions_clients":
+        "Communiquez avec les clients pour confirmer les détails de la commande/course, le lieu et l'heure de livraison. Gardez toujours la conversation professionnelle.",
+    "chat_instructions_tips":
+        "Astuce : Ne partagez jamais votre numéro de téléphone personnel. Toutes les communications doivent se faire via l'application pour votre sécurité.",
+    "ride": "Course",
+    "rides": "Courses",
+    "no_orders_found": "Aucune commande trouvée",
+    "all": "Tout",
+    "start_date": "Date de début",
+    "end_date": "Date de fin",
+    "status": "Statut",
+    "history": "Historique",
+    "current": "Actuel",
+    "clear_filters": "Effacer les filtres",
+    "edit_profile_popup_title": "Modifier le Profil",
+    "edit_profile_popup_desc": "Mettre à jour vos informations personnelles",
+    "matricule_vehicule": "Plaque du Véhicule",
+    "matricule_invalid": "Numéro de plaque invalide",
+    "photo_vehicule": "Photo du Véhicule",
+    "photo_permis": "Photo du Permis",
+    "photo_carte_grise": "Carte Grise",
+    "photo_assurance": "Photo de l'Assurance",
+    "photo_vignette": "Photo de la Vignette",
+    "photo_carte_municipale": "Carte Municipale",
+    "work_time": "Heures de Travail"
   };
   static const Map<String, Map<String, dynamic>> mapLocales = {
     "ar": _ar,

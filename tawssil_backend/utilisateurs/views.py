@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -16,11 +16,13 @@ from .services import generate_otp, save_otp_to_db, send_email_otp, send_sms_otp
 import time
 from django.core.mail import send_mail
 import random
-from commandes.models import Commande
+from commandes.models import Commande, Voyage
 from evaluations.models import Evaluation
-from django.db.models import Sum, Avg
+from django.db.models import Sum, Avg, Count
 from produits.models import Produit
 from rest_framework.serializers import ModelSerializer
+import requests
+from rest_framework.authtoken.models import Token
 
 # تعريف متغير logger
 logger = logging.getLogger(__name__)
@@ -967,7 +969,8 @@ def login_user(request):
             'adresse': user.adresse,
             'type_utilisateur': user.type_utilisateur,
             'is_active': user.is_active,
-            'date_joined': user.date_joined
+            'date_joined': user.date_joined,
+            'photo_profile': request.build_absolute_uri(user.photo_profile.url) if user.photo_profile else None
         }
         # إضافة معلومات إضافية بناءً على نوع المستخدم
         if user.type_utilisateur == 'Livreur' and hasattr(user, 'profil_livreur'):
@@ -2331,10 +2334,24 @@ def list_drivers(request):
                 return None
         return None
 
+    # استيراد النماذج اللازمة
+    from evaluations.models import Evaluation
+    from commandes.models import Commande, Voyage
+    from django.db.models import Avg, Count, Q
+
     livreurs = Livreur.objects.select_related('utilisateur').all()
     chauffeurs = Chauffeur.objects.select_related('utilisateur').all()
     data = []
     for l in livreurs:
+        # حساب متوسط التقييم للسائق من نوع Livreur
+        # نحسب فقط التقييمات المرتبطة بالطلبات المكتملة (Livrée)
+        note_moyenne = 0
+        commandes_livrees = Commande.objects.filter(livreur=l, statut='Livrée').count()
+        if commandes_livrees > 0:
+            evaluations = Evaluation.objects.filter(livreur=l, commande__statut='Livrée')
+            if evaluations.exists():
+                note_moyenne = round(evaluations.aggregate(Avg('note'))['note__avg'] or 0, 2)
+        
         data.append({
             'id': l.id,
             'type': 'Livreur',
@@ -2347,7 +2364,7 @@ def list_drivers(request):
             'zone_couverture': l.zone_couverture,
             'date_demande': l.utilisateur.date_joined.strftime('%Y-%m-%d') if l.utilisateur and l.utilisateur.date_joined else '',
             'statut_verification': l.statut_verification,
-            'disponibilite': l.disponibilite,  # أضف هذا السطر
+            'disponibilite': l.disponibilite,
             'date_naissance': l.utilisateur.date_naissance.strftime('%Y-%m-%d') if l.utilisateur and l.utilisateur.date_naissance else '',
             'photo_vehicule': get_file_url(request, l.photo_vehicule),
             'photo_permis': get_file_url(request, l.photo_permis),
@@ -2357,8 +2374,19 @@ def list_drivers(request):
             'photo_carte_municipale': get_file_url(request, l.photo_carte_municipale),
             'latitude': l.utilisateur.latitude if l.utilisateur else None,
             'longitude': l.utilisateur.longitude if l.utilisateur else None,
+            'note_moyenne': note_moyenne,
+            'commandes_livrees': commandes_livrees
         })
     for c in chauffeurs:
+        # حساب متوسط التقييم للسائق من نوع Chauffeur
+        # نحسب فقط التقييمات المرتبطة بالرحلات المكتملة (Terminée)
+        note_moyenne = 0
+        voyages_termines = Voyage.objects.filter(chauffeur=c, statut='Terminée').count()
+        if voyages_termines > 0:
+            # في حالة Chauffeur، التقييم موجود في حقل rating في جدول Voyage
+            rating_avg = Voyage.objects.filter(chauffeur=c, statut='Terminée').aggregate(Avg('rating'))['rating__avg']
+            note_moyenne = round(rating_avg or 0, 2)
+        
         data.append({
             'id': c.id,
             'type': 'Chauffeur',
@@ -2371,7 +2399,7 @@ def list_drivers(request):
             'zone_couverture': c.zone_couverture,
             'date_demande': c.utilisateur.date_joined.strftime('%Y-%m-%d') if c.utilisateur and c.utilisateur.date_joined else '',
             'statut_verification': c.statut_verification,
-            'disponibilite': c.disponibilite,  # أضف هذا السطر
+            'disponibilite': c.disponibilite,
             'date_naissance': c.utilisateur.date_naissance.strftime('%Y-%m-%d') if c.utilisateur and c.utilisateur.date_naissance else '',
             'photo_vehicule': get_file_url(request, c.photo_vehicule),
             'photo_permis': get_file_url(request, c.photo_permis),
@@ -2381,6 +2409,8 @@ def list_drivers(request):
             'photo_carte_municipale': get_file_url(request, c.photo_carte_municipale),
             'latitude': c.utilisateur.latitude if c.utilisateur else None,
             'longitude': c.utilisateur.longitude if c.utilisateur else None,
+            'note_moyenne': note_moyenne,
+            'voyages_termines': voyages_termines
         })
     return Response({'status': 'success', 'drivers': data})
 
@@ -2472,31 +2502,63 @@ def users_stats(request):
     return Response(data)
 
 @api_view(['PATCH'])
-@permission_classes([AllowAny])
+@permission_classes([AllowAny])  # تغيير من IsAuthenticated إلى AllowAny للسماح بالوصول بدون مصادقة
 def update_driver_status(request, driver_id):
     """
-    تحديث حالة التحقق للسائق (Livreur أو Chauffeur) حسب المعرف
+    تحديث حالة التوفر للسائق (Livreur أو Chauffeur) حسب معرف المستخدم
     """
-    statut = request.data.get('statut_verification')
-    if not statut:
-        return Response({'error': 'Champ statut_verification requis'}, status=status.HTTP_400_BAD_REQUEST)
-    # جرب البحث في Livreur أولاً
-    from .models import Livreur, Chauffeur
-    driver = Livreur.objects.filter(id=driver_id).first()
-    if not driver:
-        driver = Chauffeur.objects.filter(id=driver_id).first()
-    if not driver:
-        return Response({'error': 'Chauffeur/Livreur introuvable'}, status=status.HTTP_404_NOT_FOUND)
-    driver.statut_verification = statut
-    if statut == 'Approuvé':
-        from django.utils import timezone
-        driver.certification_date = timezone.now().date()
-        driver.raison_refus = None
-    elif statut == 'Refusé':
-        driver.certification_date = None
-        driver.raison_refus = request.data.get('raison_refus', '')
-    driver.save()
-    return Response({'message': 'Statut mis à jour', 'statut_verification': driver.statut_verification})
+    try:
+        disponibilite = request.data.get('disponibilite')
+        if disponibilite is None:
+            return Response({'error': 'حقل disponibilite مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # تحويل القيمة إلى boolean
+        disponibilite = disponibilite in [True, 'true', 'True', 1, '1']
+        
+        # البحث عن المستخدم أولاً
+        try:
+            user = Utilisateur.objects.get(id_utilisateur=driver_id)
+        except Utilisateur.DoesNotExist:
+            return Response({'error': 'لم يتم العثور على المستخدم'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # التحقق من نوع المستخدم وتحديث حالة التوفر
+        driver = None
+        driver_type = None
+        driver_id_in_table = None
+        
+        if user.type_utilisateur == 'Livreur' and hasattr(user, 'profil_livreur'):
+            driver = user.profil_livreur
+            driver_type = 'Livreur'
+            driver_id_in_table = driver.id
+            # تحديث حالة التوفر في جدول Livreur مباشرة
+            Livreur.objects.filter(id=driver_id_in_table).update(disponibilite=disponibilite)
+        elif user.type_utilisateur == 'Chauffeur' and hasattr(user, 'profil_chauffeur'):
+            driver = user.profil_chauffeur
+            driver_type = 'Chauffeur'
+            driver_id_in_table = driver.id
+            # تحديث حالة التوفر في جدول Chauffeur مباشرة
+            Chauffeur.objects.filter(id=driver_id_in_table).update(disponibilite=disponibilite)
+        
+        if not driver:
+            return Response({'error': 'المستخدم ليس سائقاً أو لا يملك ملف تعريف سائق'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # تحديث الكائن المحلي بعد التحديث في قاعدة البيانات
+        driver.refresh_from_db()
+        
+        # إرجاع الاستجابة
+        return Response({
+            'message': 'تم تحديث حالة التوفر بنجاح',
+            'disponibilite': driver.disponibilite,
+            'driver_id': driver_id,
+            'driver_id_in_table': driver_id_in_table,
+            'driver_type': driver_type
+        })
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': f'حدث خطأ: {str(e)}',
+            'trace': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def clients_table_stats(request):
@@ -2997,4 +3059,349 @@ def list_all_otp_codes(request):
         'count': len(serializer.data),
         'otps': serializer.data
     })
+    
+@api_view(['PATCH'])
+@permission_classes([AllowAny])
+def update_driver_verification_status(request, driver_id):
+    """
+    تحديث حالة التحقق للسائق (Livreur أو Chauffeur) حسب معرف السائق
+    """
+    try:
+        statut_verification = request.data.get('statut_verification')
+        raison_refus = request.data.get('raison_refus')
+        
+        if statut_verification is None:
+            return Response({'error': 'حقل statut_verification مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # التحقق من أن القيمة المقدمة هي قيمة صالحة
+        valid_statuses = ['En attente', 'Approuvé', 'Refusé']
+        if statut_verification not in valid_statuses:
+            return Response({'error': f'قيمة statut_verification غير صالحة. القيم المسموح بها هي: {", ".join(valid_statuses)}'}, 
+                            status=status.HTTP_400_BAD_REQUEST)
+        
+        # البحث عن السائق مباشرة باستخدام معرفه في جدول Livreur أو Chauffeur
+        driver = None
+        driver_type = None
+        
+        # محاولة البحث في جدول Livreur
+        try:
+            driver = Livreur.objects.get(id=driver_id)
+            driver_type = 'Livreur'
+        except Livreur.DoesNotExist:
+            # محاولة البحث في جدول Chauffeur
+            try:
+                driver = Chauffeur.objects.get(id=driver_id)
+                driver_type = 'Chauffeur'
+            except Chauffeur.DoesNotExist:
+                return Response({'error': 'لم يتم العثور على السائق'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # تحديث حالة التحقق
+        update_data = {'statut_verification': statut_verification}
+        if statut_verification == 'Approuvé':
+            update_data['certification_date'] = timezone.now().date()
+            update_data['raison_refus'] = None
+        elif statut_verification == 'Refusé' and raison_refus:
+            update_data['raison_refus'] = raison_refus
+            update_data['certification_date'] = None
+        
+        # تحديث السائق في قاعدة البيانات
+        if driver_type == 'Livreur':
+            Livreur.objects.filter(id=driver_id).update(**update_data)
+        else:  # Chauffeur
+            Chauffeur.objects.filter(id=driver_id).update(**update_data)
+        
+        # تحديث الكائن المحلي بعد التحديث في قاعدة البيانات
+        driver.refresh_from_db()
+        
+        # إرجاع الاستجابة
+        response_data = {
+            'message': 'تم تحديث حالة التحقق بنجاح',
+            'statut_verification': driver.statut_verification,
+            'driver_id': driver_id,
+            'driver_type': driver_type
+        }
+        
+        if driver.statut_verification == 'Approuvé':
+            response_data['certification_date'] = driver.certification_date
+        elif driver.statut_verification == 'Refusé':
+            response_data['raison_refus'] = driver.raison_refus
+            
+        return Response(response_data)
+    except Exception as e:
+        import traceback
+        return Response({
+            'error': f'حدث خطأ: {str(e)}',
+            'trace': traceback.format_exc()
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['POST'])
+def login_view(request):
+    """
+    تسجيل دخول المستخدم واستخراج التوكن
+    """
+    try:
+        data = request.data
+        
+        # استخراج البيانات من الطلب
+        email = data.get('email')
+        telephone = data.get('telephone')
+        username = data.get('username')
+        password = data.get('password')
+        type_utilisateur = data.get('type_utilisateur')
+        
+        # تحديد نوع تسجيل الدخول (بريد إلكتروني أو هاتف أو اسم مستخدم)
+        if email:
+            login_field = 'email'
+            login_value = email
+        elif telephone:
+            login_field = 'telephone'
+            login_value = telephone
+        elif username:
+            login_field = 'username'
+            login_value = username
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'يجب توفير بريد إلكتروني أو رقم هاتف أو اسم مستخدم'
+            }, status=400)
+        
+        # البحث عن المستخدم
+        try:
+            if login_field == 'email':
+                user = Utilisateur.objects.get(email=login_value)
+            elif login_field == 'telephone':
+                user = Utilisateur.objects.get(telephone=login_value)
+            else:
+                user = Utilisateur.objects.get(username=login_value)
+        except Utilisateur.DoesNotExist:
+            return Response({
+                'status': 'error',
+                'message': 'المستخدم غير موجود'
+            }, status=401)
+        
+        # التحقق من نوع المستخدم إذا تم تحديده
+        if type_utilisateur and user.type_utilisateur != type_utilisateur:
+            return Response({
+                'status': 'error',
+                'message': 'نوع الحساب غير متطابق',
+                'error': 'نوع الحساب غير متطابق مع النوع المحدد'
+            }, status=401)
+        
+        # التحقق من كلمة المرور
+        if not user.check_password(password):
+            return Response({
+                'status': 'error',
+                'message': 'كلمة المرور غير صحيحة',
+                'error': 'كلمة المرور غير صحيحة'
+            }, status=401)
+        
+        # التحقق من حالة الحساب
+        if not user.is_active:
+            return Response({
+                'status': 'inactive',
+                'message': 'الحساب غير نشط',
+                'user': {
+                    'id_utilisateur': user.id_utilisateur,
+                    'username': user.username,
+                    'email': user.email,
+                    'telephone': user.telephone,
+                    'type_utilisateur': user.type_utilisateur,
+                }
+            }, status=200)
+        
+        # تحديث وقت آخر تسجيل دخول
+        user.last_login = timezone.now()
+        
+        # إضافة إحداثيات المستخدم بناءً على عنوان IP
+        client_ip = get_client_ip(request)
+        try:
+            # استخدام خدمة ipinfo.io للحصول على الإحداثيات بناءً على عنوان IP
+            response = requests.get(f'https://ipinfo.io/{client_ip}/json')
+            if response.status_code == 200:
+                location_data = response.json()
+                if 'loc' in location_data:
+                    lat, lng = location_data['loc'].split(',')
+                    user.latitude = float(lat)
+                    user.longitude = float(lng)
+                    print(f"تم تحديث إحداثيات المستخدم: {lat}, {lng}")
+        except Exception as e:
+            print(f"خطأ في تحديث الإحداثيات: {e}")
+            # لا نستخدم إحداثيات افتراضية، بدلاً من ذلك نترك الإحداثيات كما هي
+            print("فشل تحديث الإحداثيات، سيتم استخدام آخر إحداثيات معروفة أو طلبها من المستخدم")
+        
+        # حفظ التغييرات
+        user.save()
+        
+        # إنشاء أو استرجاع التوكن
+        token, created = Token.objects.get_or_create(user=user)
+        
+        # إعداد بيانات المستخدم للرد
+        user_data = {
+            'id_utilisateur': user.id_utilisateur,
+            'username': user.username,
+            'email': user.email,
+            'telephone': user.telephone,
+            'type_utilisateur': user.type_utilisateur,
+            'is_staff': user.is_staff,
+            'photo_profile': user.photo_profile.url if user.photo_profile else None,
+            'latitude': user.latitude,
+            'longitude': user.longitude,
+        }
+        
+        # إضافة معلومات إضافية حسب نوع المستخدم
+        if user.type_utilisateur == 'Livreur' and hasattr(user, 'profil_livreur'):
+            user_data['statut_verification'] = user.profil_livreur.statut_verification
+            user_data['raison_refus'] = user.profil_livreur.raison_refus
+            user_data['disponibilite'] = user.profil_livreur.disponibilite
+        elif user.type_utilisateur == 'Chauffeur' and hasattr(user, 'profil_chauffeur'):
+            user_data['statut_verification'] = user.profil_chauffeur.statut_verification
+            user_data['raison_refus'] = user.profil_chauffeur.raison_refus
+            user_data['disponibilite'] = user.profil_chauffeur.disponibilite
+        
+        return Response({
+            'status': 'success',
+            'message': 'تم تسجيل الدخول بنجاح',
+            'user': user_data,
+            'token': token.key
+        }, status=200)
+        
+    except Exception as e:
+        print(f"خطأ في تسجيل الدخول: {str(e)}")
+        return Response({
+            'status': 'error',
+            'message': 'حدث خطأ أثناء تسجيل الدخول',
+            'error': str(e)
+        }, status=500)
+
+# دالة مساعدة للحصول على عنوان IP للعميل
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+    return ip
+
+# دالة جديدة للحصول على موقع المستخدم بدون الحاجة إلى توكن
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_user_location(request, user_id):
+    """
+    الحصول على موقع المستخدم (خط العرض وخط الطول) بدون الحاجة إلى توكن
+    """
+    try:
+        # البحث عن المستخدم
+        user = Utilisateur.objects.get(id_utilisateur=user_id)
+        
+        # التحقق مما إذا كانت إحداثيات المستخدم متوفرة
+        if user.latitude is not None and user.longitude is not None:
+            return Response({
+                'status': 'success',
+                'user_id': user_id,
+                'latitude': user.latitude,
+                'longitude': user.longitude,
+                'message': 'تم الحصول على إحداثيات المستخدم بنجاح'
+            }, status=200)
+        
+        # محاولة استخدام آخر إحداثيات معروفة للمستخدم
+        try:
+            if hasattr(user, 'profil_livreur') and user.profil_livreur and hasattr(user.profil_livreur, 'derniere_latitude') and user.profil_livreur.derniere_latitude:
+                return Response({
+                    'status': 'last_known',
+                    'user_id': user_id,
+                    'latitude': user.profil_livreur.derniere_latitude,
+                    'longitude': user.profil_livreur.derniere_longitude,
+                    'message': 'تم استخدام آخر موقع معروف للمستخدم'
+                }, status=200)
+            elif hasattr(user, 'profil_chauffeur') and user.profil_chauffeur and hasattr(user.profil_chauffeur, 'derniere_latitude') and user.profil_chauffeur.derniere_latitude:
+                return Response({
+                    'status': 'last_known',
+                    'user_id': user_id,
+                    'latitude': user.profil_chauffeur.derniere_latitude,
+                    'longitude': user.profil_chauffeur.derniere_longitude,
+                    'message': 'تم استخدام آخر موقع معروف للمستخدم'
+                }, status=200)
+        except Exception as e:
+            print(f"خطأ في استخدام آخر موقع معروف: {e}")
+        
+        # بدلاً من استخدام إحداثيات افتراضية، نرجع خطأ للعميل
+        # لكن مع رمز استجابة 200 بدلاً من 404 لتجنب الأخطاء في العميل
+        return Response({
+            'status': 'error',
+            'user_id': user_id,
+            'message': 'تعذر تحديد موقعك الحقيقي. يرجى التأكد من تفعيل خدمات الموقع وإعادة المحاولة.'
+        }, status=200)
+        
+    except Utilisateur.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'المستخدم غير موجود'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'حدث خطأ: {str(e)}'
+        }, status=200)  # استخدام رمز 200 بدلاً من 500 لتجنب الأخطاء في العميل
+    
+# دالة جديدة لتحديث موقع المستخدم
+@api_view(['PUT', 'PATCH'])
+@permission_classes([AllowAny])
+def update_user_location(request, user_id):
+    """
+    تحديث موقع المستخدم (خط العرض وخط الطول) بدون الحاجة إلى توكن
+    """
+    try:
+        # البحث عن المستخدم
+        user = Utilisateur.objects.get(id_utilisateur=user_id)
+        
+        # التحقق من وجود بيانات الموقع في الطلب
+        if 'latitude' in request.data and 'longitude' in request.data:
+            try:
+                latitude = float(request.data['latitude'])
+                longitude = float(request.data['longitude'])
+                
+                # تحديث موقع المستخدم
+                user.latitude = latitude
+                user.longitude = longitude
+                user.save()
+                
+                # تحديث آخر موقع معروف للمستخدم في الملف الشخصي
+                if hasattr(user, 'profil_livreur') and user.profil_livreur:
+                    user.profil_livreur.derniere_latitude = latitude
+                    user.profil_livreur.derniere_longitude = longitude
+                    user.profil_livreur.save()
+                elif hasattr(user, 'profil_chauffeur') and user.profil_chauffeur:
+                    user.profil_chauffeur.derniere_latitude = latitude
+                    user.profil_chauffeur.derniere_longitude = longitude
+                    user.profil_chauffeur.save()
+                
+                print(f"تم تحديث إحداثيات المستخدم: {latitude}, {longitude}")
+                
+                return Response({
+                    'status': 'success',
+                    'user_id': user_id,
+                    'latitude': latitude,
+                    'longitude': longitude,
+                    'message': 'تم تحديث موقع المستخدم بنجاح'
+                }, status=200)
+            except ValueError:
+                return Response({
+                    'status': 'error',
+                    'message': 'قيم الإحداثيات غير صالحة'
+                }, status=400)
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'بيانات الموقع مفقودة (latitude, longitude)'
+            }, status=400)
+    except Utilisateur.DoesNotExist:
+        return Response({
+            'status': 'error',
+            'message': 'المستخدم غير موجود'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': f'حدث خطأ: {str(e)}'
+        }, status=500)
     

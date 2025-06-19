@@ -99,6 +99,23 @@ const Deliveries = () => {
     }
   };
 
+  // عرض التقييم بالنجوم
+  const renderRating = (rating) => {
+    if (!rating) return "-";
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Typography variant="body2" component="span" sx={{ mr: 1 }}>
+          {rating}/5
+        </Typography>
+        <Box sx={{ display: 'flex', color: '#FFB400' }}>
+          {[...Array(5)].map((_, i) => (
+            <span key={i} style={{ color: i < Math.floor(rating) ? '#FFB400' : '#e0e0e0' }}>★</span>
+          ))}
+        </Box>
+      </Box>
+    );
+  };
+
   // فتح نافذة التفاصيل
   const handleShowDetails = (item, type) => {
     setSelectedItem({ ...item, type });
@@ -183,6 +200,7 @@ const Deliveries = () => {
                 <TableCell>Adresse</TableCell>
                 <TableCell>Prix du produit (MRU)</TableCell>
                 <TableCell>Frais de livraison (MRU)</TableCell>
+                <TableCell>Évaluation</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -198,6 +216,7 @@ const Deliveries = () => {
                   <TableCell>{cmd.adresse_livraison}</TableCell>
                   <TableCell>{cmd.prix_produit} MRU</TableCell>
                   <TableCell>{cmd.frais_livraison} MRU</TableCell>
+                  <TableCell>{renderRating(cmd.evaluation)}</TableCell>
                   <TableCell>{getStatusChip(cmd.statut)}</TableCell>
                   <TableCell>
                     <IconButton size="small" title="Voir les détails" onClick={() => handleShowDetails(cmd, 'commande')}>
@@ -208,7 +227,7 @@ const Deliveries = () => {
               ))}
               {filteredCommandes.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={10} align="center">Aucun résultat trouvé</TableCell>
+                  <TableCell colSpan={11} align="center">Aucun résultat trouvé</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -221,11 +240,13 @@ const Deliveries = () => {
               <TableRow>
                 <TableCell>N° Voyage</TableCell>
                 <TableCell>Voyageur</TableCell>
+                <TableCell>Chauffeur</TableCell>
                 <TableCell>Destination</TableCell>
                 <TableCell>Date de départ</TableCell>
                 <TableCell>Date d'arrivée</TableCell>
                 <TableCell>Nombre de personnes</TableCell>
                 <TableCell>Tarif du transport (MRU)</TableCell>
+                <TableCell>Évaluation</TableCell>
                 <TableCell>Statut</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -235,11 +256,13 @@ const Deliveries = () => {
                 <TableRow key={voyage.id_voyage}>
                   <TableCell>{voyage.id_voyage}</TableCell>
                   <TableCell>{voyage.voyageur_username}</TableCell>
+                  <TableCell>{voyage.chauffeur_username || '-'}</TableCell>
                   <TableCell>{voyage.destination}</TableCell>
                   <TableCell>{voyage.date_depart}</TableCell>
                   <TableCell>{voyage.date_arrivee}</TableCell>
                   <TableCell>{voyage.nombre_personnes}</TableCell>
                   <TableCell>{voyage.tarif_transport} MRU</TableCell>
+                  <TableCell>{renderRating(voyage.evaluation)}</TableCell>
                   <TableCell>{getSituationChip(voyage.statut)}</TableCell>
                   <TableCell>
                     <IconButton size="small" title="Voir les détails" onClick={() => { setSelectedItem(voyage); setDialogOpen(true); }}>
@@ -250,7 +273,7 @@ const Deliveries = () => {
               ))}
               {filteredVoyages.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">Aucun résultat trouvé</TableCell>
+                  <TableCell colSpan={11} align="center">Aucun résultat trouvé</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -288,6 +311,21 @@ const Deliveries = () => {
                       <Typography variant="h6" fontWeight={700} gutterBottom>Fournisseur et livreur</Typography>
                       <Typography><b>Fournisseur:</b> {selectedItem.fournisseur_nom}</Typography>
                       <Typography><b>Livreur/Chauffeur:</b> {selectedItem.livreur_username ? selectedItem.livreur_username : (selectedItem.chauffeur_username ? selectedItem.chauffeur_username : '-' )}</Typography>
+                      {selectedItem.evaluation && (
+                        <Box mt={1}>
+                          <Typography><b>Évaluation:</b></Typography>
+                          <Box display="flex" alignItems="center" mt={0.5}>
+                            <Typography variant="body1" component="span" sx={{ mr: 1, fontWeight: 600 }}>
+                              {selectedItem.evaluation}/5
+                            </Typography>
+                            <Box sx={{ display: 'flex', color: '#FFB400' }}>
+                              {[...Array(5)].map((_, i) => (
+                                <span key={i} style={{ color: i < Math.floor(selectedItem.evaluation) ? '#FFB400' : '#e0e0e0', fontSize: '20px' }}>★</span>
+                              ))}
+                            </Box>
+                          </Box>
+                        </Box>
+                      )}
                     </CardContent>
                   </Card>
                 </Grid>
@@ -343,9 +381,11 @@ const Deliveries = () => {
                   <Card variant="outlined" sx={{ mb: 2, boxShadow: 3, borderRadius: 3, bgcolor: '#fafdff' }}>
                     <CardContent>
                       <Typography variant="h6" fontWeight={700} gutterBottom>Informations du voyageur</Typography>
-                      <Typography><b>Nom:</b> {selectedItem.voyageur_username}</Typography>
+                      <Typography><b>Voyageur:</b> {selectedItem.voyageur_username}</Typography>
+                      <Typography><b>Chauffeur:</b> {selectedItem.chauffeur_username || '-'}</Typography>
                       <Typography><b>Destination:</b> {selectedItem.destination}</Typography>
                       <Typography><b>Nombre de personnes:</b> {selectedItem.nombre_personnes}</Typography>
+                      <Typography><b>Évaluation:</b> {selectedItem.evaluation ? `${selectedItem.evaluation}/5` : '-'}</Typography>
                     </CardContent>
                   </Card>
                 </Grid>

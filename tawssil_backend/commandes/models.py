@@ -119,12 +119,14 @@ class Voyage(models.Model):
     ]
     id_voyage = models.AutoField(primary_key=True)
     voyageur = models.ForeignKey('utilisateurs.Client', on_delete=models.CASCADE)
+    chauffeur = models.ForeignKey('utilisateurs.Chauffeur', on_delete=models.SET_NULL, related_name='voyages', null=True, blank=True)
     destination = models.CharField(max_length=255)
     date_depart = models.DateTimeField()
     date_arrivee = models.DateTimeField()
     poids_disponible = models.FloatField()
     tarif_transport = models.FloatField()
     statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='En attente')
+    rating = models.FloatField(null=True, blank=True, help_text="تقييم الرحلة من 1 إلى 5")
     
     def __str__(self):
         return f"Voyage vers {self.destination} le {self.date_depart}"

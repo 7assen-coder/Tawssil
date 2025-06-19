@@ -16,4 +16,14 @@ urlpatterns = [
     path('commandes-list/', views.commandes_list, name='commandes_list'),
     path('voyages-list/', views.voyages_list, name='voyages_list'),
     path('providers/<int:provider_id>/orders/', views.commandes_by_provider, name='commandes_by_provider'),
+    
+    # مسارات جديدة للحصول على إحصائيات السائقين
+    path('livreur/<int:livreur_id>/count/', views.livreur_commandes_count, name='livreur_commandes_count'),
+    path('voyages/chauffeur/<int:chauffeur_id>/count/', views.chauffeur_voyages_count, name='chauffeur_voyages_count'),
+    
+    # مسار جديد للحصول على متوسط تقييم المستخدم
+    path('user/<int:user_id>/rating/', views.get_user_rating, name='get_user_rating'),
+    
+    # مسار جديد للحصول على أرباح المستخدم
+    path('user/<int:user_id>/earnings/', views.get_user_earnings, name='get_user_earnings'),
 ] 

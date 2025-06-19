@@ -13,6 +13,10 @@ class User {
   final String token;
   final String? statutVerification;
   final String? raisonRefus;
+  final String? photoProfile;
+  final bool? disponibilite;
+  final double? latitude;
+  final double? longitude;
 
   User({
     required this.id,
@@ -24,9 +28,51 @@ class User {
     required this.token,
     this.statutVerification,
     this.raisonRefus,
+    this.photoProfile,
+    this.disponibilite,
+    this.latitude,
+    this.longitude,
   });
 
   factory User.fromJson(Map<String, dynamic> userData, String token) {
+    // طباعة البيانات للتصحيح
+    debugPrint('User data from server: $userData');
+
+    // استخراج مسار الصورة الشخصية بشكل أكثر تفصيلاً
+    String? photoProfile;
+    if (userData.containsKey('photo_profile')) {
+      photoProfile = userData['photo_profile'];
+      if (photoProfile != null && photoProfile.isNotEmpty) {
+        debugPrint('تم العثور على صورة الملف الشخصي: $photoProfile');
+      } else {
+        debugPrint('صورة الملف الشخصي فارغة أو غير محددة');
+      }
+    } else {
+      debugPrint('مفتاح photo_profile غير موجود في بيانات المستخدم');
+    }
+
+    // طباعة جميع المفاتيح الموجودة في بيانات المستخدم
+    debugPrint('مفاتيح بيانات المستخدم: ${userData.keys.toList()}');
+
+    // استخراج حالة التوفر (disponibilite)
+    bool? disponibilite;
+    if (userData.containsKey('disponibilite')) {
+      disponibilite = userData['disponibilite'] == true;
+      debugPrint('حالة التوفر: $disponibilite');
+    }
+
+    // استخراج إحداثيات المستخدم
+    double? latitude;
+    double? longitude;
+    if (userData.containsKey('latitude') && userData['latitude'] != null) {
+      latitude = double.tryParse(userData['latitude'].toString());
+      debugPrint('خط العرض: $latitude');
+    }
+    if (userData.containsKey('longitude') && userData['longitude'] != null) {
+      longitude = double.tryParse(userData['longitude'].toString());
+      debugPrint('خط الطول: $longitude');
+    }
+
     return User(
       id: userData['id_utilisateur'] ?? 0,
       username: userData['username'] ?? '',
@@ -37,6 +83,10 @@ class User {
       token: token,
       statutVerification: userData['statut_verification'],
       raisonRefus: userData['raison_refus'],
+      photoProfile: photoProfile,
+      disponibilite: disponibilite,
+      latitude: latitude,
+      longitude: longitude,
     );
   }
 }
@@ -46,7 +96,7 @@ class AuthService {
   // استخدم 10.0.2.2 للوصول إلى localhost من المُحاكي في Android
   // استخدم 127.0.0.1 للاختبار المحلي
   static String baseUrl =
-      'http://10.0.2.2:8000'; // استخدام 10.0.2.2 للوصول إلى localhost من محاكي Android
+      'http://192.168.100.13:8000'; // استخدام 10.0.2.2 للوصول إلى localhost من محاكي Android
 
   // تغيير المنفذ للاختبار
   static void setBaseUrl(String newUrl) {
@@ -598,6 +648,102 @@ class AuthService {
       return {
         'statusCode': 500,
         'data': {'message': e.toString()},
+      };
+    }
+  }
+
+  // دالة لتحديث حالة توفر السائق (disponibilite)
+  Future<Map<String, dynamic>> updateDriverAvailability(
+      int driverId, bool isAvailable, String token) async {
+    try {
+      debugPrint(
+          'تحديث حالة توفر السائق: driverId=$driverId, isAvailable=$isAvailable');
+
+      // إنشاء جسم الطلب
+      Map<String, dynamic> requestBody = {'disponibilite': isAvailable};
+
+      // إرسال طلب تحديث الحالة
+      final response = await http
+          .patch(
+        Uri.parse('$baseUrl/api/users/$driverId/update/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      )
+          .timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          debugPrint('انتهت مهلة الطلب بعد 10 ثوانٍ');
+          throw Exception(
+              'انتهت المهلة: لا توجد استجابة من الخادم بعد 10 ثوانٍ');
+        },
+      );
+
+      debugPrint('رمز حالة الاستجابة: ${response.statusCode}');
+      debugPrint(
+          'معاينة نص الاستجابة: ${response.body.substring(0, min(100, response.body.length))}');
+
+      // تحليل الاستجابة
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'message': responseData['message'] ?? 'تم تحديث الحالة بنجاح',
+          'disponibilite': responseData['disponibilite'] ?? isAvailable
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['message'] ?? 'فشل تحديث الحالة',
+          'error': responseData['error'] ?? 'خطأ غير معروف'
+        };
+      }
+    } catch (e) {
+      debugPrint('خطأ في تحديث حالة السائق: $e');
+      return {
+        'success': false,
+        'message': 'حدث خطأ أثناء تحديث الحالة',
+        'error': e.toString()
+      };
+    }
+  }
+
+  // دالة للحصول على معلومات الملف الشخصي للمستخدم
+  Future<Map<String, dynamic>> getUserProfile(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/validate-token/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Token $token'
+        },
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception(
+              'انتهت المهلة: لا توجد استجابة من الخادم بعد 10 ثوانٍ');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body);
+        return {
+          'success': true,
+          'user': responseData['user'],
+        };
+      } else {
+        return {
+          'success': false,
+          'message': 'فشل في الحصول على معلومات المستخدم',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'message': 'خطأ في الاتصال',
+        'error': e.toString()
       };
     }
   }

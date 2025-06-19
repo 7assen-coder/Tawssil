@@ -107,13 +107,25 @@ class ColisAdmin(admin.ModelAdmin):
 
 class VoyageAdmin(admin.ModelAdmin):
     """إدارة الرحلات في لوحة المشرف"""
-    list_display = ('id_voyage', 'display_voyageur', 'destination', 'date_depart', 'date_arrivee', 'poids_disponible', 'tarif_transport')
-    search_fields = ('id_voyage', 'voyageur__utilisateur__username', 'destination')
-    list_filter = ('date_depart',)
+    list_display = ('id_voyage', 'display_voyageur', 'display_chauffeur', 'destination', 'date_depart', 'date_arrivee', 'poids_disponible', 'tarif_transport', 'display_rating', 'statut')
+    search_fields = ('id_voyage', 'voyageur__utilisateur__username', 'chauffeur__utilisateur__username', 'destination')
+    list_filter = ('date_depart', 'statut')
     
     def display_voyageur(self, obj):
         return obj.voyageur.utilisateur.username
     display_voyageur.short_description = 'المسافر'
+    
+    def display_chauffeur(self, obj):
+        if obj.chauffeur:
+            return obj.chauffeur.utilisateur.username
+        return "-"
+    display_chauffeur.short_description = 'السائق'
+    
+    def display_rating(self, obj):
+        if obj.rating is not None:
+            return f"{obj.rating:.1f} ★"
+        return "-"
+    display_rating.short_description = 'التقييم'
 
 
 # تسجيل النماذج في لوحة الإدارة

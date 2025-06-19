@@ -62,7 +62,7 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: const Duration(milliseconds: 800),
     );
 
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
@@ -94,10 +94,36 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
 
   @override
   Widget build(BuildContext context) {
+    // استخدام MediaQuery للحصول على أبعاد الشاشة
+    final screenSize = MediaQuery.of(context).size;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    // حساب الأحجام المتجاوبة
+    final logoSize =
+        isLandscape ? screenSize.height * 0.18 : screenSize.width * 0.2;
+    final logoContainerPadding = isLandscape ? 10.0 : 15.0;
+    final titleFontSize = isLandscape ? 18.0 : 20.0;
+    final subtitleFontSize = isLandscape ? 14.0 : 16.0;
+    final buttonHeight = isLandscape ? 45.0 : 50.0;
+    final optionHeight = isLandscape ? 50.0 : 60.0;
+    final dialogWidth = isLandscape
+        ? screenSize.width * 0.5
+        : screenSize.width > 600
+            ? screenSize.width * 0.6
+            : screenSize.width * 0.85;
+    final dialogPadding = isLandscape
+        ? const EdgeInsets.fromLTRB(20, 20, 20, 15)
+        : const EdgeInsets.fromLTRB(25, 25, 25, 20);
+    final spacingBetweenOptions = isLandscape ? 8.0 : 12.0;
+
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: screenSize.width * 0.05,
+        vertical: screenSize.height * 0.05,
+      ),
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -109,239 +135,253 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
             ),
           );
         },
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // طبقة الخلفية الزجاجية
-            ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(
-                  padding: const EdgeInsets.all(3),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Colors.white.withOpacity(0.2),
-                        Colors.white.withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: Colors.white.withOpacity(0.2),
-                      width: 1.5,
-                    ),
-                  ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: dialogWidth,
+            maxHeight:
+                isLandscape ? screenSize.height * 0.9 : screenSize.height * 0.7,
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // طبقة الخلفية الزجاجية
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
+                    padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.9),
-                      borderRadius: BorderRadius.circular(22),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Colors.white.withOpacity(0.2),
+                          Colors.white.withOpacity(0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
 
-            // المحتوى الرئيسي
-            Positioned.fill(
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(25, 25, 25, 20),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // لوجو التطبيق
-                    Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2F9C95).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF2F9C95).withOpacity(0.2),
-                            blurRadius: 20,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Image.asset(
-                        'assets/images/Tawssil@logo.png',
-                        height: 80,
-                        width: 80,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // عنوان
-                    const Text(
-                      'اختر لغة التطبيق',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2F9C95),
-                        fontFamily: 'Cairo',
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 5),
-                    const Text(
-                      'Choose your language',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const Text(
-                      'Choisissez votre langue',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // فاصل زخرفي
-                    Container(
-                      width: 50,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2F9C95).withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // خيارات اللغة
-                    _buildLanguageOption(
-                      context: context,
-                      flagWidget:
-                          _buildFlag(_mauritaniaFlagSvg, width: 30, height: 20),
-                      language: 'العربية',
-                      locale: 'ar',
-                      index: 0,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLanguageOption(
-                      context: context,
-                      flagWidget: _buildFlag(_ukFlagSvg, width: 30, height: 20),
-                      language: 'English',
-                      locale: 'en',
-                      index: 1,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildLanguageOption(
-                      context: context,
-                      flagWidget:
-                          _buildFlag(_franceFlagSvg, width: 30, height: 20),
-                      language: 'Français',
-                      locale: 'fr',
-                      index: 2,
-                    ),
-
-                    const SizedBox(height: 25),
-
-                    // زر المتابعة
-                    Material(
-                      color: Colors.transparent,
-                      child: InkWell(
-                        onTap: _selectedLanguageIndex >= 0
-                            ? () {
-                                // تنفيذ وظيفة تغيير اللغة قبل أي تأخير لتجنب مشاكل BuildContext
-                                switch (_selectedLanguageIndex) {
-                                  case 0:
-                                    context.setLocale(const Locale('ar'));
-                                    break;
-                                  case 1:
-                                    context.setLocale(const Locale('en'));
-                                    break;
-                                  case 2:
-                                    context.setLocale(const Locale('fr'));
-                                    break;
-                                }
-
-                                // إغلاق الحوار وتنفيذ الدالة المرتبطة
-                                Navigator.of(context).pop();
-                                widget.onLanguageSelected();
-                              }
-                            : null,
-                        borderRadius: BorderRadius.circular(12),
-                        child: Container(
-                          width: double.infinity,
-                          height: 50,
+              // المحتوى الرئيسي
+              Positioned.fill(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Container(
+                    padding: dialogPadding,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // لوجو التطبيق
+                        Container(
+                          padding: EdgeInsets.all(logoContainerPadding),
                           decoration: BoxDecoration(
-                            gradient: _selectedLanguageIndex >= 0
-                                ? const LinearGradient(
-                                    colors: [
-                                      Color(0xFF2F9C95),
-                                      Color(0xFF2A8A84),
-                                    ],
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      Colors.grey.shade400,
-                                      Colors.grey.shade500,
-                                    ],
-                                  ),
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: _selectedLanguageIndex >= 0
-                                ? [
-                                    BoxShadow(
-                                      color: const Color(0xFF2F9C95)
-                                          .withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ]
-                                : null,
+                            color: const Color(0xFF2F9C95).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2F9C95).withOpacity(0.2),
+                                blurRadius: 20,
+                                spreadRadius: 1,
+                              ),
+                            ],
                           ),
-                          child: Center(
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 300),
-                              child: _selectedLanguageIndex >= 0
-                                  ? const Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          'متابعة',
+                          child: Image.asset(
+                            'assets/images/Tawssil@logo.png',
+                            height: logoSize,
+                            width: logoSize,
+                          ),
+                        ),
+                        SizedBox(height: isLandscape ? 15 : 20),
+
+                        // عنوان
+                        Text(
+                          'اختر لغة التطبيق',
+                          style: TextStyle(
+                            fontSize: titleFontSize,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF2F9C95),
+                            fontFamily: 'Cairo',
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          'Choose your language',
+                          style: TextStyle(
+                            fontSize: subtitleFontSize,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        Text(
+                          'Choisissez votre langue',
+                          style: TextStyle(
+                            fontSize: subtitleFontSize,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+
+                        SizedBox(height: isLandscape ? 15 : 25),
+
+                        // فاصل زخرفي
+                        Container(
+                          width: 50,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2F9C95).withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+
+                        SizedBox(height: isLandscape ? 15 : 20),
+
+                        // خيارات اللغة
+                        _buildLanguageOption(
+                          context: context,
+                          flagWidget: _buildFlag(_mauritaniaFlagSvg,
+                              width: 30, height: 20),
+                          language: 'العربية',
+                          locale: 'ar',
+                          index: 0,
+                          height: optionHeight,
+                        ),
+                        SizedBox(height: spacingBetweenOptions),
+                        _buildLanguageOption(
+                          context: context,
+                          flagWidget:
+                              _buildFlag(_ukFlagSvg, width: 30, height: 20),
+                          language: 'English',
+                          locale: 'en',
+                          index: 1,
+                          height: optionHeight,
+                        ),
+                        SizedBox(height: spacingBetweenOptions),
+                        _buildLanguageOption(
+                          context: context,
+                          flagWidget:
+                              _buildFlag(_franceFlagSvg, width: 30, height: 20),
+                          language: 'Français',
+                          locale: 'fr',
+                          index: 2,
+                          height: optionHeight,
+                        ),
+
+                        SizedBox(height: isLandscape ? 15 : 25),
+
+                        // زر المتابعة
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _selectedLanguageIndex >= 0
+                                ? () {
+                                    // تنفيذ وظيفة تغيير اللغة قبل أي تأخير لتجنب مشاكل BuildContext
+                                    switch (_selectedLanguageIndex) {
+                                      case 0:
+                                        context.setLocale(const Locale('ar'));
+                                        break;
+                                      case 1:
+                                        context.setLocale(const Locale('en'));
+                                        break;
+                                      case 2:
+                                        context.setLocale(const Locale('fr'));
+                                        break;
+                                    }
+
+                                    // إغلاق الحوار وتنفيذ الدالة المرتبطة
+                                    Navigator.of(context).pop();
+                                    widget.onLanguageSelected();
+                                  }
+                                : null,
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              width: double.infinity,
+                              height: buttonHeight,
+                              decoration: BoxDecoration(
+                                gradient: _selectedLanguageIndex >= 0
+                                    ? const LinearGradient(
+                                        colors: [
+                                          Color(0xFF2F9C95),
+                                          Color(0xFF2A8A84),
+                                        ],
+                                      )
+                                    : LinearGradient(
+                                        colors: [
+                                          Colors.grey.shade400,
+                                          Colors.grey.shade500,
+                                        ],
+                                      ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: _selectedLanguageIndex >= 0
+                                    ? [
+                                        BoxShadow(
+                                          color: const Color(0xFF2F9C95)
+                                              .withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Center(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 300),
+                                  child: _selectedLanguageIndex >= 0
+                                      ? Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'متابعة',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: isLandscape ? 14 : 16,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Icon(
+                                              Icons.arrow_forward,
+                                              color: Colors.white,
+                                              size: isLandscape ? 16 : 18,
+                                            ),
+                                          ],
+                                        )
+                                      : Text(
+                                          'اختر لغة',
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 16,
+                                            fontSize: isLandscape ? 14 : 16,
                                           ),
                                         ),
-                                        SizedBox(width: 8),
-                                        Icon(
-                                          Icons.arrow_forward,
-                                          color: Colors.white,
-                                          size: 18,
-                                        ),
-                                      ],
-                                    )
-                                  : const Text(
-                                      'اختر لغة',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -354,8 +394,14 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
     required String language,
     required String locale,
     required int index,
+    required double height,
   }) {
     final isSelected = _selectedLanguageIndex == index;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+    final fontSize = isLandscape ? 14.0 : 16.0;
+    final checkIconSize = isLandscape ? 14.0 : 16.0;
+    final checkContainerSize = isLandscape ? 20.0 : 24.0;
 
     return Material(
       color: Colors.transparent,
@@ -371,7 +417,7 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
-          height: 60,
+          height: height,
           decoration: BoxDecoration(
             color: isSelected
                 ? const Color(0xFF2F9C95).withOpacity(0.1)
@@ -393,13 +439,15 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
                   ]
                 : [],
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+          padding: EdgeInsets.symmetric(
+              horizontal: isLandscape ? 10 : 15,
+              vertical: isLandscape ? 8 : 10),
           child: Row(
             children: [
               // علم البلد
               Container(
-                width: 40,
-                height: 30,
+                width: isLandscape ? 35 : 40,
+                height: isLandscape ? 25 : 30,
                 padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -417,13 +465,13 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
                   child: flagWidget,
                 ),
               ),
-              const SizedBox(width: 15),
+              SizedBox(width: isLandscape ? 10 : 15),
 
               // اسم اللغة
               Text(
                 language,
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: fontSize,
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   color: isSelected ? const Color(0xFF2F9C95) : Colors.black87,
                 ),
@@ -436,16 +484,16 @@ class _LanguageSelectionDialogState extends State<LanguageSelectionDialog>
                 opacity: isSelected ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 300),
                 child: Container(
-                  width: 24,
-                  height: 24,
+                  width: checkContainerSize,
+                  height: checkContainerSize,
                   decoration: const BoxDecoration(
                     color: Color(0xFF2F9C95),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.check,
                     color: Colors.white,
-                    size: 16,
+                    size: checkIconSize,
                   ),
                 ),
               ),

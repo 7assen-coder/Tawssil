@@ -3,7 +3,7 @@ import {
   Grid, Card, CardContent, Typography, Table, TableBody, 
   TableCell, TableContainer, TableHead, TableRow, Paper, 
   Chip, TextField, Select, MenuItem, FormControl, InputLabel,
-  IconButton, Box, Tab, Tabs, Button
+  IconButton, Box, Tab, Tabs, Button, Menu, ListItemIcon, ListItemText
 } from '@mui/material';
 import PaidIcon from '@mui/icons-material/Paid';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
@@ -18,6 +18,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CloseIcon from '@mui/icons-material/Close';
+import PrintIcon from '@mui/icons-material/Print';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+import ImageIcon from '@mui/icons-material/Image';
+import DescriptionIcon from '@mui/icons-material/Description';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, LineChart, Line, CartesianGrid } from 'recharts';
 import './Payments.css';
 
@@ -34,6 +40,7 @@ const Payments = () => {
   const [openDetails, setOpenDetails] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [statusData, setStatusData] = useState([]);
+  const [printMenuAnchor, setPrintMenuAnchor] = useState(null);
 
   useEffect(() => {
     setIsLoading(true);
@@ -187,6 +194,117 @@ const Payments = () => {
     };
   };
   const { start, end } = getPeriodRange();
+
+  const handlePrintMenuOpen = (event) => {
+    setPrintMenuAnchor(event.currentTarget);
+  };
+
+  const handlePrintMenuClose = () => {
+    setPrintMenuAnchor(null);
+  };
+
+  const handlePrint = (format) => {
+    if (!selectedPayment) return;
+    
+    // Fermez le menu
+    handlePrintMenuClose();
+    
+    // Créez un élément pour l'impression
+    const printContent = document.createElement('div');
+    printContent.style.padding = '20px';
+    printContent.style.fontFamily = 'Arial, sans-serif';
+    
+    // Ajoutez le contenu du reçu
+    printContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <img src="/Tawssil_logo.png" alt="Logo" style="width: 120px; margin-bottom: 10px;" />
+        <h2 style="color: #2F9C95; margin: 5px 0;">Reçu de Paiement</h2>
+        <p style="color: #666; font-size: 14px;">Généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
+      </div>
+      <div style="border: 2px solid #2F9C95; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td style="padding: 8px; font-weight: bold; width: 40%;">Numéro de paiement:</td>
+            <td style="padding: 8px;">${selectedPayment.id}</td>
+          </tr>
+          <tr style="background-color: #f9f9f9;">
+            <td style="padding: 8px; font-weight: bold;">Numéro de commande:</td>
+            <td style="padding: 8px;">${selectedPayment.orderId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">Client:</td>
+            <td style="padding: 8px;">${selectedPayment.customerName}</td>
+          </tr>
+          <tr style="background-color: #f9f9f9;">
+            <td style="padding: 8px; font-weight: bold;">Montant:</td>
+            <td style="padding: 8px; font-weight: bold; color: #2e7d32;">${selectedPayment.amount.toLocaleString()} MRU</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">Date:</td>
+            <td style="padding: 8px;">${selectedPayment.date}</td>
+          </tr>
+          <tr style="background-color: #f9f9f9;">
+            <td style="padding: 8px; font-weight: bold;">Méthode de paiement:</td>
+            <td style="padding: 8px;">${getMethodName(selectedPayment.method)}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px; font-weight: bold;">Statut:</td>
+            <td style="padding: 8px; color: ${selectedPayment.status === 'Confirme' ? '#2e7d32' : selectedPayment.status === 'En Attente' ? '#ed6c02' : '#d32f2f'};">
+              ${selectedPayment.status === 'Confirme' ? 'Confirmé' : selectedPayment.status === 'En Attente' ? 'En attente' : 'Échoué'}
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div style="border-top: 1px dashed #ccc; padding-top: 15px; text-align: center;">
+        <p style="font-size: 14px; color: #666;">Merci d'avoir utilisé les services de Tawssil!</p>
+        <p style="font-size: 12px; color: #999;">Pour toute question, veuillez contacter notre service client.</p>
+      </div>
+    `;
+    
+    // Si un reçu est disponible, ajoutez-le
+    if (selectedPayment.recu) {
+      printContent.innerHTML += `
+        <div style="text-align: center; margin-top: 20px;">
+          <p style="font-weight: bold; margin-bottom: 10px;">Image du reçu:</p>
+          <img src="${selectedPayment.recu}" alt="Reçu" style="max-width: 300px; border: 1px solid #ddd; border-radius: 5px;" />
+        </div>
+      `;
+    }
+    
+    // Ouvrez une nouvelle fenêtre pour l'impression
+    const printWindow = window.open('', '', 'width=800,height=600');
+    printWindow.document.write('<html><head><title>Reçu de Paiement</title>');
+    printWindow.document.write('</head><body>');
+    printWindow.document.write(printContent.innerHTML);
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    
+    // Effectuez l'action en fonction du format
+    switch (format) {
+      case 'pdf':
+        alert('Téléchargement du PDF en cours...');
+        // Ici, vous pourriez intégrer une bibliothèque comme jsPDF ou html2pdf
+        break;
+      case 'excel':
+        alert('Exportation vers Excel en cours...');
+        // Ici, vous pourriez intégrer une bibliothèque comme xlsx
+        break;
+      case 'png':
+      case 'jpg':
+        alert(`Téléchargement de l'image ${format.toUpperCase()} en cours...`);
+        // Ici, vous pourriez intégrer une bibliothèque comme html2canvas
+        break;
+      case 'word':
+        alert('Exportation vers Word en cours...');
+        // Ici, vous pourriez intégrer une bibliothèque pour l'exportation vers Word
+        break;
+      default:
+        // Impression standard
+        printWindow.focus();
+        printWindow.print();
+        break;
+    }
+  };
 
   if (isLoading) {
     return <div className="loading">Chargement en cours...</div>;
@@ -500,6 +618,91 @@ const Payments = () => {
                     </Box>
                   </Box>
                 )}
+                <Box mt={2} display="flex" justifyContent="center">
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    startIcon={<PrintIcon />}
+                    endIcon={<KeyboardArrowDownIcon />}
+                    onClick={handlePrintMenuOpen}
+                    sx={{
+                      borderRadius: '30px',
+                      boxShadow: '0 4px 10px rgba(47, 156, 149, 0.3)',
+                      background: 'linear-gradient(45deg, #2F9C95 30%, #3AAFA9 90%)',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #2F9C95 10%, #3AAFA9 70%)',
+                        boxShadow: '0 6px 15px rgba(47, 156, 149, 0.4)',
+                      }
+                    }}
+                  >
+                    Imprimer le reçu
+                  </Button>
+                  <Menu
+                    anchorEl={printMenuAnchor}
+                    open={Boolean(printMenuAnchor)}
+                    onClose={handlePrintMenuClose}
+                    PaperProps={{
+                      elevation: 4,
+                      sx: {
+                        borderRadius: 2,
+                        minWidth: 180,
+                        overflow: 'visible',
+                        mt: 1.5,
+                        '&:before': {
+                          content: '""',
+                          display: 'block',
+                          position: 'absolute',
+                          top: 0,
+                          right: 14,
+                          width: 10,
+                          height: 10,
+                          bgcolor: 'background.paper',
+                          transform: 'translateY(-50%) rotate(45deg)',
+                          zIndex: 0,
+                        },
+                      },
+                    }}
+                    transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                    anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                  >
+                    <MenuItem onClick={() => handlePrint('print')} dense>
+                      <ListItemIcon>
+                        <PrintIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText primary="Imprimer" />
+                    </MenuItem>
+                    <MenuItem onClick={() => handlePrint('pdf')} dense>
+                      <ListItemIcon>
+                        <PictureAsPdfIcon fontSize="small" color="error" />
+                      </ListItemIcon>
+                      <ListItemText primary="Exporter en PDF" />
+                    </MenuItem>
+                    <MenuItem onClick={() => handlePrint('excel')} dense>
+                      <ListItemIcon>
+                        <TableChartIcon fontSize="small" sx={{ color: '#217346' }} />
+                      </ListItemIcon>
+                      <ListItemText primary="Exporter en Excel" />
+                    </MenuItem>
+                    <MenuItem onClick={() => handlePrint('png')} dense>
+                      <ListItemIcon>
+                        <ImageIcon fontSize="small" color="primary" />
+                      </ListItemIcon>
+                      <ListItemText primary="Télécharger en PNG" />
+                    </MenuItem>
+                    <MenuItem onClick={() => handlePrint('jpg')} dense>
+                      <ListItemIcon>
+                        <ImageIcon fontSize="small" color="secondary" />
+                      </ListItemIcon>
+                      <ListItemText primary="Télécharger en JPG" />
+                    </MenuItem>
+                    <MenuItem onClick={() => handlePrint('word')} dense>
+                      <ListItemIcon>
+                        <DescriptionIcon fontSize="small" sx={{ color: '#2b579a' }} />
+                      </ListItemIcon>
+                      <ListItemText primary="Exporter en Word" />
+                    </MenuItem>
+                  </Menu>
+                </Box>
               </Card>
             </Box>
           )}

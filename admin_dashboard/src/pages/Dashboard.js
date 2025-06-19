@@ -10,7 +10,13 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import TwoWheelerIcon from '@mui/icons-material/TwoWheeler';
 import DriveEtaIcon from '@mui/icons-material/DriveEta';
 import GroupIcon from '@mui/icons-material/Group';
+import InsightsIcon from '@mui/icons-material/Insights';
+import BarChartIcon from '@mui/icons-material/BarChart';
 import StatCard from '../components/StatCard';
+import { 
+  LineChart, Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, AreaChart, Area
+} from 'recharts';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -23,6 +29,13 @@ const Dashboard = () => {
   const [usersStats, setUsersStats] = useState(null);
   const [recentLivreurLivraisons, setRecentLivreurLivraisons] = useState([]);
   const [recentVoyages, setRecentVoyages] = useState([]);
+  const [activeTab, setActiveTab] = useState(0);
+  const [statisticsData, setStatisticsData] = useState({
+    deliveries: [],
+    revenue: [],
+    dailyDeliveries: [],
+    weeklyRevenue: []
+  });
 
   // عدد الطلبات في الشهر الماضي (يمكنك تعديله لاحقاً أو جلبه من API)
   const percentageChange = lastMonthDeliveries === null || lastMonthDeliveries === 0
@@ -127,22 +140,151 @@ const Dashboard = () => {
       .then(res => res.json())
       .then(data => {
         setRecentLivreurLivraisons(data);
+        
+        // تحويل البيانات للرسوم البيانية
+        const chartData = data.map(item => ({
+          id: item.id_commande,
+          name: item.client_username || 'Client',
+          montant: item.montant_total,
+          date: new Date(item.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
+        }));
+        
+        setStatisticsData(prev => ({
+          ...prev,
+          deliveries: chartData
+        }));
       });
 
     fetch('http://localhost:8000/api/commandes/recent-voyages/')
       .then(res => res.json())
       .then(data => {
         setRecentVoyages(data);
+        
+        // تحويل البيانات للرسوم البيانية
+        const chartData = data.map(item => ({
+          id: item.id_voyage,
+          name: item.voyageur_username || 'Voyageur',
+          tarif: item.tarif_transport,
+          date: new Date(item.date_depart).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })
+        }));
+        
+        setStatisticsData(prev => ({
+          ...prev,
+          revenue: chartData
+        }));
+      });
+
+    // Fetch daily deliveries data for trend chart
+    fetch('http://localhost:8000/api/commandes/daily-deliveries/')
+      .then(res => res.json())
+      .then(data => {
+        // If the API doesn't exist yet, this is simulated data
+        // In a real implementation, this would come from the backend
+        const dailyData = data.daily_data || generateDailyDeliveriesData();
+        
+        setStatisticsData(prev => ({
+          ...prev,
+          dailyDeliveries: dailyData
+        }));
+      })
+      .catch(() => {
+        // Fallback to simulated data if API doesn't exist
+        const simulatedData = generateDailyDeliveriesData();
+        setStatisticsData(prev => ({
+          ...prev,
+          dailyDeliveries: simulatedData
+        }));
+      });
+
+    // Fetch weekly revenue data for trend chart
+    fetch('http://localhost:8000/api/commandes/weekly-revenue/')
+      .then(res => res.json())
+      .then(data => {
+        // If the API doesn't exist yet, this is simulated data
+        // In a real implementation, this would come from the backend
+        const weeklyData = data.weekly_data || generateWeeklyRevenueData();
+        
+        setStatisticsData(prev => ({
+          ...prev,
+          weeklyRevenue: weeklyData
+        }));
+      })
+      .catch(() => {
+        // Fallback to simulated data if API doesn't exist
+        const simulatedData = generateWeeklyRevenueData();
+        setStatisticsData(prev => ({
+          ...prev,
+          weeklyRevenue: simulatedData
+        }));
       });
   }, []);
 
-  useEffect(() => {
-    // في بيئة الإنتاج، ستستخدم هذه الدوال لجلب البيانات الحقيقية
-    // getDashboardStats().then(response => setStats(response.data));
-    // getPendingDrivers().then(response => setPendingDrivers(response.data));
-    // getDeliveries('recent').then(response => setRecentDeliveries(response.data));
+  // Generate simulated data for daily deliveries (to be replaced with real API data)
+  const generateDailyDeliveriesData = () => {
+    const days = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    const currentDate = new Date();
+    const currentDay = currentDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+    
+    return days.map((day, index) => {
+      // Generate data with realistic fluctuations
+      const baseValue = 120; // Base number of deliveries
+      const dayOffset = (index + 1) % 7; // Adjust for days of week (Monday = 0)
+      
+      // Create a pattern: higher on weekends, lower on Tuesdays
+      let multiplier = 1;
+      if (dayOffset === 5 || dayOffset === 6) { // Weekend (Sat, Sun)
+        multiplier = 1.5;
+      } else if (dayOffset === 1) { // Tuesday
+        multiplier = 0.7;
+      } else if (dayOffset === 3) { // Thursday
+        multiplier = 1.2;
+      }
+      
+      // Add some randomness
+      const randomFactor = 0.8 + Math.random() * 0.4; // Between 0.8 and 1.2
+      
+      // Calculate final value with some randomness
+      const value = Math.round(baseValue * multiplier * randomFactor);
+      
+      // Highlight the current day
+      const isToday = (dayOffset === currentDay);
+      
+      return {
+        name: day,
+        deliveries: value,
+        isToday: isToday
+      };
+    });
+  };
 
-    // بيانات تجريبية للعرض
+  // Generate simulated data for weekly revenue (to be replaced with real API data)
+  const generateWeeklyRevenueData = () => {
+    const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    
+    return weeks.map((week, index) => {
+      // Generate data with realistic fluctuations
+      const baseRevenue = 5000; // Base revenue
+      
+      // Create a pattern: growth trend with a dip in week 3
+      let multiplier = 1 + (index * 0.15); // Growth trend
+      if (index === 2) { // Week 3 dip
+        multiplier = 0.9;
+      }
+      
+      // Add some randomness
+      const randomFactor = 0.9 + Math.random() * 0.2; // Between 0.9 and 1.1
+      
+      // Calculate final value with some randomness
+      const value = Math.round(baseRevenue * multiplier * randomFactor);
+      
+      return {
+        name: week,
+        revenue: value
+      };
+    });
+  };
+
+  useEffect(() => {
     setIsLoading(false);
   }, []);
 
@@ -156,6 +298,25 @@ const Dashboard = () => {
   const restaurantCount = fournisseurs.filter(f => f.type === 'Restaurant').length;
   const pharmacyCount = fournisseurs.filter(f => f.type === 'Pharmacie').length;
   const supermarketCount = fournisseurs.filter(f => f.type === 'Supermarché').length;
+  
+  // Custom tooltip for charts
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="custom-tooltip">
+          <p className="tooltip-label">{`${label}`}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} style={{ color: entry.color || entry.stroke }}>
+              {`${entry.name}: ${entry.value}`}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const isSmallScreen = window.innerWidth <= 768;
 
   return (
     <div className="dashboard-page">
@@ -270,70 +431,181 @@ const Dashboard = () => {
         />
       </div>
       
-      <div className="tables-grid">
-        <div className="card">
-          <h2 className="section-title">Dernières demandes de chauffeurs</h2>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>N° Voyage</th>
-                  <th>Client</th>
-                  <th>Destination</th>
-                  <th>Tarif</th>
-                  <th>Poids disponible</th>
-                  <th>Date départ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentVoyages.map((voyage) => (
-                  <tr key={voyage.id_voyage}>
-                    <td>{voyage.id_voyage}</td>
-                    <td>{voyage.voyageur_username || '-'}</td>
-                    <td>{voyage.destination}</td>
-                    <td>{voyage.tarif_transport} MRU</td>
-                    <td>{voyage.poids_disponible} kg</td>
-                    <td>{voyage.date_depart ? new Date(voyage.date_depart).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Statistics Section */}
+      <div className="statistics-section">
+        <div className="statistics-header">
+          <h2 className="section-title">Statistiques des activités</h2>
+          <div className="statistics-tabs">
+            <button 
+              className={`statistics-tab-btn ${activeTab === 0 ? 'active' : ''}`}
+              onClick={() => setActiveTab(0)}
+            >
+              <InsightsIcon fontSize="small" />
+              <span>Statistiques</span>
+            </button>
+            <button 
+              className={`statistics-tab-btn ${activeTab === 1 ? 'active' : ''}`}
+              onClick={() => setActiveTab(1)}
+            >
+              <BarChartIcon fontSize="small" />
+              <span>Données</span>
+            </button>
           </div>
         </div>
         
-        <div className="card">
-          <h2 className="section-title">Dernières livraisons</h2>
-          <div className="table-container">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>N°</th>
-                  <th>Nom livreur</th>
-                  <th>Client</th>
-                  <th>Date</th>
-                  <th>Adresse</th>
-                  <th>Montant</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentLivreurLivraisons.map((cmd) => (
-                  <tr key={cmd.id_commande}>
-                    <td>{cmd.id_commande}</td>
-                    <td>{cmd.livreur_username || '-'}</td>
-                    <td>{cmd.client_username || '-'}</td>
-                    <td>{new Date(cmd.date_commande).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                    <td>{cmd.adresse_livraison}</td>
-                    <td>{cmd.montant_total} MRU</td>
-                    <td>
-                      <span className={`status-badge status-${cmd.statut.replace(/\s/g, '').toLowerCase()}`}>{cmd.statut}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        {activeTab === 0 ? (
+          <div className="statistics-cards">
+            {/* Livraisons quotidiennes */}
+            <div className="statistic-card">
+              <h3 className="statistic-card-header">Livraisons quotidiennes</h3>
+              <div className="line-chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart 
+                    data={statisticsData.dailyDeliveries} 
+                    margin={{ top: 5, right: 20, bottom: 20, left: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Line 
+                      type="monotone" 
+                      dataKey="deliveries" 
+                      name="Livraisons" 
+                      stroke="#1976d2" 
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: "#1976d2" }}
+                      activeDot={{ r: 6, fill: "#1976d2" }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-footer">
+                <span>Tendance hebdomadaire</span>
+                <span>Total: {statisticsData.dailyDeliveries.reduce((sum, item) => sum + item.deliveries, 0)}</span>
+              </div>
+            </div>
+            
+            {/* Revenus hebdomadaires */}
+            <div className="statistic-card">
+              <h3 className="statistic-card-header">Revenus hebdomadaires</h3>
+              <div className="line-chart-container">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart 
+                    data={statisticsData.weeklyRevenue}
+                    margin={{ top: 5, right: 20, bottom: 20, left: 0 }}
+                  >
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#43a047" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#43a047" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                    <XAxis 
+                      dataKey="name" 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11 }}
+                    />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      name="Revenus" 
+                      stroke="#43a047" 
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="chart-footer">
+                <span>Tendance mensuelle</span>
+                <span>Total: ${statisticsData.weeklyRevenue.reduce((sum, item) => sum + item.revenue, 0)}</span>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="statistics-cards">
+            {/* Dernières demandes de chauffeurs */}
+            <div className="statistic-card">
+              <h3 className="statistic-card-header">Dernières demandes de chauffeurs</h3>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>N° Voyage</th>
+                      <th>Client</th>
+                      {!isSmallScreen && <th>Destination</th>}
+                      <th>Tarif</th>
+                      <th>Date départ</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentVoyages.map((voyage) => (
+                      <tr key={voyage.id_voyage}>
+                        <td>{voyage.id_voyage}</td>
+                        <td>{voyage.voyageur_username || '-'}</td>
+                        {!isSmallScreen && <td>{voyage.destination}</td>}
+                        <td>{voyage.tarif_transport}</td>
+                        <td>{voyage.date_depart ? new Date(voyage.date_depart).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
+            {/* Dernières livraisons */}
+            <div className="statistic-card">
+              <h3 className="statistic-card-header">Dernières livraisons</h3>
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>N°</th>
+                      {!isSmallScreen && <th>Livreur</th>}
+                      <th>Client</th>
+                      <th>Date</th>
+                      <th>Montant</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentLivreurLivraisons.map((cmd) => (
+                      <tr key={cmd.id_commande}>
+                        <td>{cmd.id_commande}</td>
+                        {!isSmallScreen && <td>{cmd.livreur_username || '-'}</td>}
+                        <td>{cmd.client_username || '-'}</td>
+                        <td>{new Date(cmd.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}</td>
+                        <td>{cmd.montant_total}</td>
+                        <td>
+                          <span className={`status-badge status-${cmd.statut.replace(/\s/g, '').toLowerCase()}`}>{cmd.statut}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -605,7 +605,7 @@ const ProviderManagement = () => {
               </div>
               <div className="stat-info">
                 <Typography variant="h6" component="h2">Revenu total</Typography>
-                <Typography variant="h4" component="p">{(totalRevenue || 0).toLocaleString()} MRU</Typography>
+                <Typography variant="h4" component="p">{(totalRevenue || 0).toLocaleString()}</Typography>
               </div>
             </CardContent>
           </Card>
@@ -687,7 +687,7 @@ const ProviderManagement = () => {
                 <TableCell>{provider.telephone}</TableCell>
                 <TableCell>{provider.adresse}</TableCell>
                 <TableCell>{Array.isArray(provider.commandes) ? provider.commandes.length : (typeof provider.commandes === 'number' ? provider.commandes : 0)}</TableCell>
-                <TableCell>{(provider.revenu || 0).toLocaleString()} MRU</TableCell>
+                <TableCell>{(provider.revenu || 0).toLocaleString()}</TableCell>
                 <TableCell className="rating-cell">
                   <span className="rating">{provider.note}</span>
                 </TableCell>
@@ -1102,7 +1102,7 @@ const ProviderManagement = () => {
               <Divider sx={{ width: "100%", my: 2 }} />
               <Box display="flex" flexWrap="wrap" justifyContent="center" gap={3} width="100%" mb={2}>
                 <Typography variant="body1"><b>Commandes:</b> {viewProvider.commandes}</Typography>
-                <Typography variant="body1"><b>Revenu:</b> <span style={{ color: '#388e3c', fontWeight: 700 }}>{viewProvider.revenu} MRU</span></Typography>
+                <Typography variant="body1"><b>Revenu:</b> <span style={{ color: '#388e3c', fontWeight: 700 }}>{viewProvider.revenu}</span></Typography>
                 <Typography variant="body1"><b>Produits:</b> {viewProvider.produits}</Typography>
                 <Typography variant="body1"><b>Note:</b> {viewProvider.note}</Typography>
               </Box>
@@ -1175,7 +1175,7 @@ const ProviderManagement = () => {
                     </TableCell>
                     <TableCell align="center">{product.nom}</TableCell>
                     <TableCell align="center">{product.description}</TableCell>
-                    <TableCell align="center">{parseFloat(product.prix).toLocaleString()} MRU</TableCell>
+                    <TableCell align="center">{parseFloat(product.prix).toLocaleString()}</TableCell>
                     <TableCell align="center">{product.categorie || '-'}</TableCell>
                     <TableCell align="center">
                       <Chip
@@ -1406,7 +1406,7 @@ const ProviderManagement = () => {
                       <TableCell>{provider.telephone}</TableCell>
                       <TableCell>{provider.adresse}</TableCell>
                       <TableCell>{Array.isArray(provider.commandes) ? provider.commandes.length : (typeof provider.commandes === 'number' ? provider.commandes : 0)}</TableCell>
-                      <TableCell>{provider.revenu}</TableCell>
+                      <TableCell>{(provider.revenu || 0).toLocaleString()}</TableCell>
                       <TableCell>{provider.produits}</TableCell>
                       <TableCell>{provider.statut}</TableCell>
                       <TableCell>{provider.date_inscription}</TableCell>

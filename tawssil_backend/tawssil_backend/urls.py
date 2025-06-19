@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from utilisateurs.serializers import MyTokenObtainPairView, MyTokenRefreshView
 from utilisateurs.views import (
     protected_view, register_user, list_users, search_advanced, 
-    update_user, delete_user, bulk_delete_users, login_user, 
+    update_user, delete_user, bulk_delete_users, login_view, login_user ,
     check_user_exists, send_otp_email, send_otp_sms, verify_otp,
     reset_password, reactivate_otp,
     register_otp_email, register_otp_sms, complete_registration,
@@ -13,6 +13,7 @@ from utilisateurs.views import (
     providers_stats,
     users_stats,
     update_driver_status,
+    update_driver_verification_status,
     clients_table_stats,
     create_provider,
     update_provider,
@@ -26,8 +27,15 @@ from utilisateurs.views import (
     validate_token,
     clients_and_drivers,
     list_all_otp_codes,
+    get_user_location,
+    update_user_location,
 )
-from commandes.views import active_deliveries_count, last_month_active_deliveries_count
+from commandes.views import (
+    active_deliveries_count, 
+    last_month_active_deliveries_count,
+    livreur_commandes_count,
+    chauffeur_voyages_count
+)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -35,6 +43,7 @@ urlpatterns = [
     # مسارات المستخدمين
     path('api/register/', register_user, name='register'),
     path('api/login/', login_user, name='login'),
+    path('api/login/', login_view, name='login'),
     path('api/check-user-exists/', check_user_exists, name='check_user_exists'),
     path('api/protected/', protected_view, name='protected_view'),
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -71,7 +80,8 @@ urlpatterns = [
     path('api/commandes/last-month-active-deliveries-count/', last_month_active_deliveries_count, name='last_month_active_deliveries_count'),
     path('api/providers-stats/', providers_stats, name='providers_stats'),
     path('api/users-stats/', users_stats, name='users_stats'),
-    path('api/update-driver-status/<int:driver_id>/', update_driver_status, name='update_driver_status'),
+    path('api/drivers/<int:driver_id>/update-status/', update_driver_status, name='update_driver_status'),
+    path('api/drivers/<int:driver_id>/update-verification/', update_driver_verification_status, name='update_driver_verification_status'),
     path('api/clients-table-stats/', clients_table_stats, name='clients_table_stats'),
     path('api/create-provider/', create_provider, name='create_provider'),
     path('api/providers/<int:provider_id>/update/', update_provider, name='update_provider'),
@@ -85,6 +95,12 @@ urlpatterns = [
     path('api/validate-token/', validate_token, name='validate_token'),
     path('api/utilisateurs/clients-drivers/', clients_and_drivers, name='clients_and_drivers'),
     path('api/otp-codes/', list_all_otp_codes, name='list_all_otp_codes'),
+    
+    # مسارات جديدة لعدد التوصيلات والرحلات
+    path('api/commandes/livreur/<int:livreur_id>/count/', livreur_commandes_count, name='livreur_commandes_count'),
+    path('api/commandes/voyages/chauffeur/<int:chauffeur_id>/count/', chauffeur_voyages_count, name='chauffeur_voyages_count'),
+    path('api/users/<int:user_id>/location/', get_user_location, name='get_user_location'),
+    path('api/users/<int:user_id>/update-location/', update_user_location, name='update_user_location'),
 ]
 
 if settings.DEBUG:

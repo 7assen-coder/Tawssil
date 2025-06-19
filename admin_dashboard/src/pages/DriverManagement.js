@@ -3,7 +3,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, 
   Paper, Button, Dialog, DialogTitle, DialogContent, DialogActions, 
   TextField, IconButton, Typography, Grid, Box, Card, CardContent,
-  Avatar, Chip, Rating, FormControl, InputLabel, Select, MenuItem, Menu
+  Avatar, Chip, Rating, FormControl, InputLabel, Select, MenuItem, Menu,
+  InputAdornment
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -23,6 +24,9 @@ import StarIcon from '@mui/icons-material/Star';
 import PublicIcon from '@mui/icons-material/Public';
 import EditIcon from '@mui/icons-material/Edit';
 import PrintIcon from '@mui/icons-material/Print';
+import SearchIcon from '@mui/icons-material/Search';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ClearIcon from '@mui/icons-material/Clear';
 import './DriverManagement.css';
 import axios from 'axios';
 import MuiAlert from '@mui/material/Alert';
@@ -173,6 +177,14 @@ const DriverManagement = () => {
   const [exportAnchorEl, setExportAnchorEl] = useState(null);
   const [openExportDialog, setOpenExportDialog] = useState(false);
   const [exportType, setExportType] = useState('');
+  // إضافة حالات جديدة للبحث والتصفية
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchField, setSearchField] = useState('all');
+  const [openFilterMenu, setOpenFilterMenu] = useState(false);
+  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterVehicleType, setFilterVehicleType] = useState('all');
+  const [filterMembership, setFilterMembership] = useState('all');
   // eslint-disable-next-line no-unused-vars
   const [adminUser, setAdminUser] = useState(() => {
     const stored = localStorage.getItem('adminUser');
@@ -233,7 +245,7 @@ const DriverManagement = () => {
     const driver = drivers.find(d => d.id === driverId) || allDrivers.find(d => d.id === driverId);
     if (!driver) return;
     try {
-      await axios.patch(`http://localhost:8000/api/update-driver-status/${driverId}/`, { statut_verification: 'Approuvé' });
+      await axios.patch(`http://localhost:8000/api/drivers/${driverId}/update-verification/`, { statut_verification: 'Approuvé' });
       await fetchDrivers();
       setOpenDetailsDialog(false);
     } catch (err) {
@@ -255,7 +267,7 @@ const DriverManagement = () => {
   const handleReject = async () => {
     if (!rejectReason) return;
     try {
-      await axios.patch(`http://localhost:8000/api/update-driver-status/${selectedDriverId}/`, {
+      await axios.patch(`http://localhost:8000/api/drivers/${selectedDriverId}/update-verification/`, {
         statut_verification: 'Refusé',
         raison_refus: rejectReason
       });
@@ -277,12 +289,74 @@ const DriverManagement = () => {
     }
   };
 
-  const filteredAllDrivers = allDrivers.filter(driver => {
+  // دالة جديدة للبحث والتصفية
+  const filterDrivers = (driver) => {
     if (!driver) return false;
+    
+    // تصفية حسب نوع السائق
     if (filterType !== 'all' && driver.type !== filterType) return false;
-    return driver.statut_verification === 'Approuvé';
-  });
+    
+    // تصفية حسب حالة التحقق
+    if (driver.statut_verification !== 'Approuvé') return false;
+    
+    // تصفية حسب حالة التوفر
+    if (filterStatus !== 'all') {
+      const isAvailable = driver.disponibilite === true || driver.disponibilite === 1;
+      if (filterStatus === 'available' && !isAvailable) return false;
+      if (filterStatus === 'unavailable' && isAvailable) return false;
+    }
+    
+    // تصفية حسب نوع المركبة
+    if (filterVehicleType !== 'all' && driver.type_vehicule !== filterVehicleType) return false;
+    
+    // تصفية حسب نوع العضوية
+    if (filterMembership !== 'all') {
+      if (filterMembership === 'member' && driver.statut_verification !== 'Approuvé') return false;
+      if (filterMembership === 'nonmember' && driver.statut_verification === 'Approuvé') return false;
+    }
+    
+    // البحث النصي
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      
+      if (searchField === 'all') {
+        return (
+          (driver.username && driver.username.toLowerCase().includes(query)) ||
+          (driver.email && driver.email.toLowerCase().includes(query)) ||
+          (driver.telephone && driver.telephone.toLowerCase().includes(query)) ||
+          (driver.matricule_vehicule && driver.matricule_vehicule.toLowerCase().includes(query)) ||
+          (driver.zone_couverture && driver.zone_couverture.toLowerCase().includes(query))
+        );
+      } else if (searchField === 'username') {
+        return driver.username && driver.username.toLowerCase().includes(query);
+      } else if (searchField === 'email') {
+        return driver.email && driver.email.toLowerCase().includes(query);
+      } else if (searchField === 'telephone') {
+        return driver.telephone && driver.telephone.toLowerCase().includes(query);
+      } else if (searchField === 'matricule') {
+        return driver.matricule_vehicule && driver.matricule_vehicule.toLowerCase().includes(query);
+      } else if (searchField === 'zone') {
+        return driver.zone_couverture && driver.zone_couverture.toLowerCase().includes(query);
+      }
+    }
+    
+    return true;
+  };
 
+  // تطبيق عوامل التصفية على قائمة السائقين
+  const filteredAllDrivers = allDrivers.filter(filterDrivers);
+
+  // دالة لإعادة تعيين عوامل التصفية
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSearchField('all');
+    setFilterType('all');
+    setFilterStatus('all');
+    setFilterVehicleType('all');
+    setFilterMembership('all');
+  };
+
+  // إعادة إضافة الدوال المفقودة
   const handleAddDriverChange = (field, value) => {
     setNewDriver(prev => ({ ...prev, [field]: value }));
   };
@@ -478,20 +552,225 @@ const DriverManagement = () => {
       {/* القسم الثاني: جميع السائقين المقبولين مع الفلترة */}
       <div className="card">
         <Typography variant="h6" style={{ marginBottom: 16, color: '#3f51b5' }}>{fr.allDrivers}</Typography>
-        <Box display="flex" gap={2} mb={2}>
-          <FormControl variant="outlined" size="small" style={{ minWidth: 150 }}>
-            <InputLabel>{fr.driverType}</InputLabel>
-            <Select
-              value={filterType}
-              onChange={e => setFilterType(e.target.value)}
-              label={fr.driverType}
-            >
-              <MenuItem value="all">Tous</MenuItem>
-              <MenuItem value="Livreur">Livreur</MenuItem>
-              <MenuItem value="Chauffeur">Chauffeur</MenuItem>
-            </Select>
-          </FormControl>
+        
+        {/* إضافة شريط البحث والتصفية */}
+        <Box 
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 2,
+            mb: 2,
+            p: 2,
+            backgroundColor: '#f5f5f5',
+            borderRadius: 2,
+            alignItems: 'center'
+          }}
+        >
+          {/* شريط البحث */}
+          <Box sx={{ display: 'flex', gap: 1, flexGrow: 1, flexBasis: { xs: '100%', md: 'auto' } }}>
+            <TextField
+              variant="outlined"
+              size="small"
+              placeholder={fr.search}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              sx={{ flexGrow: 1, minWidth: 200 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchQuery && (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={() => setSearchQuery('')}>
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+            />
+            
+            <FormControl variant="outlined" size="small" sx={{ minWidth: 150 }}>
+              <InputLabel>Rechercher par</InputLabel>
+              <Select
+                value={searchField}
+                onChange={(e) => setSearchField(e.target.value)}
+                label="Rechercher par"
+              >
+                <MenuItem value="all">Tous les champs</MenuItem>
+                <MenuItem value="username">Nom complet</MenuItem>
+                <MenuItem value="email">E-mail</MenuItem>
+                <MenuItem value="telephone">Téléphone</MenuItem>
+                <MenuItem value="matricule">Immatriculation</MenuItem>
+                <MenuItem value="zone">Zone de couverture</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          
+          {/* زر فلاتر متقدمة */}
+          <Button 
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={(e) => {
+              setFilterAnchorEl(e.currentTarget);
+              setOpenFilterMenu(true);
+            }}
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            Filtres avancés
+          </Button>
+          
+          {/* زر إعادة تعيين الفلاتر */}
+          <Button
+            variant="text"
+            color="secondary"
+            onClick={resetFilters}
+            size="small"
+            sx={{ whiteSpace: 'nowrap' }}
+          >
+            Réinitialiser
+          </Button>
+          
+          {/* عرض عدد النتائج */}
+          <Typography variant="body2" color="textSecondary" sx={{ ml: 'auto', whiteSpace: 'nowrap' }}>
+            {filteredAllDrivers.length} résultat{filteredAllDrivers.length !== 1 ? 's' : ''}
+          </Typography>
         </Box>
+        
+        {/* قائمة الفلاتر المتقدمة */}
+        <Menu
+          anchorEl={filterAnchorEl}
+          open={openFilterMenu}
+          onClose={() => setOpenFilterMenu(false)}
+          PaperProps={{
+            style: {
+              maxHeight: 400,
+              width: '250px',
+              padding: '8px',
+            }
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ px: 2, py: 1, fontWeight: 'bold' }}>
+            Filtres avancés
+          </Typography>
+          
+          <Box sx={{ p: 1 }}>
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Type de chauffeur</InputLabel>
+              <Select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                label="Type de chauffeur"
+              >
+                <MenuItem value="all">Tous</MenuItem>
+                <MenuItem value="Livreur">Livreur</MenuItem>
+                <MenuItem value="Chauffeur">Chauffeur</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Statut</InputLabel>
+              <Select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                label="Statut"
+              >
+                <MenuItem value="all">Tous</MenuItem>
+                <MenuItem value="available">Disponible</MenuItem>
+                <MenuItem value="unavailable">Indisponible</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl fullWidth size="small" sx={{ mb: 2 }}>
+              <InputLabel>Type de véhicule</InputLabel>
+              <Select
+                value={filterVehicleType}
+                onChange={(e) => setFilterVehicleType(e.target.value)}
+                label="Type de véhicule"
+              >
+                <MenuItem value="all">Tous</MenuItem>
+                <MenuItem value="Moto">Moto</MenuItem>
+                <MenuItem value="Voiture">Voiture</MenuItem>
+                <MenuItem value="Camion">Camion</MenuItem>
+                <MenuItem value="Camionnette">Camionnette</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+              <InputLabel>Adhésion</InputLabel>
+              <Select
+                value={filterMembership}
+                onChange={(e) => setFilterMembership(e.target.value)}
+                label="Adhésion"
+              >
+                <MenuItem value="all">Tous</MenuItem>
+                <MenuItem value="member">Membre</MenuItem>
+                <MenuItem value="nonmember">Non membre</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+              <Button
+                variant="text"
+                size="small"
+                onClick={resetFilters}
+              >
+                Réinitialiser
+              </Button>
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setOpenFilterMenu(false)}
+              >
+                Appliquer
+              </Button>
+            </Box>
+          </Box>
+        </Menu>
+        
+        {/* عرض الفلاتر النشطة */}
+        {(searchQuery || filterType !== 'all' || filterStatus !== 'all' || filterVehicleType !== 'all' || filterMembership !== 'all') && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+            {searchQuery && (
+              <Chip 
+                label={`Recherche: ${searchQuery}`} 
+                size="small" 
+                onDelete={() => setSearchQuery('')} 
+                color="primary"
+              />
+            )}
+            {filterType !== 'all' && (
+              <Chip 
+                label={`Type: ${filterType}`} 
+                size="small" 
+                onDelete={() => setFilterType('all')} 
+              />
+            )}
+            {filterStatus !== 'all' && (
+              <Chip 
+                label={`Statut: ${filterStatus === 'available' ? 'Disponible' : 'Indisponible'}`} 
+                size="small" 
+                onDelete={() => setFilterStatus('all')} 
+              />
+            )}
+            {filterVehicleType !== 'all' && (
+              <Chip 
+                label={`Véhicule: ${filterVehicleType}`} 
+                size="small" 
+                onDelete={() => setFilterVehicleType('all')} 
+              />
+            )}
+            {filterMembership !== 'all' && (
+              <Chip 
+                label={`Adhésion: ${filterMembership === 'member' ? 'Membre' : 'Non membre'}`} 
+                size="small" 
+                onDelete={() => setFilterMembership('all')} 
+              />
+            )}
+          </Box>
+        )}
+        
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
@@ -1068,7 +1347,7 @@ const DriverManagement = () => {
               if (statut_verification === 'Refusé') {
                 data.raison_refus = editRefuseReason;
               }
-              await axios.patch(`http://localhost:8000/api/update-driver-status/${editMemberDriver.id}/`, data);
+              await axios.patch(`http://localhost:8000/api/drivers/${editMemberDriver.id}/update-verification/`, data);
               setOpenEditMemberDialog(false);
               setEditRefuseReason('');
               fetchDrivers();

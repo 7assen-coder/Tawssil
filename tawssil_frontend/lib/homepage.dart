@@ -67,6 +67,18 @@ class _HomePageState extends State<HomePage>
     // تحديد النص الافتراضي حسب نوع الحساب
     _description = 'description'.tr();
 
+    // تشغيل الرسوم المتحركة
+    _controller.forward();
+
+    // عرض صفحة تسجيل الدخول بعد 4 ثوان
+    Future.delayed(const Duration(seconds: 4), () {
+      if (mounted) {
+        setState(() {
+          showLogin = true;
+        });
+      }
+    });
+
     // عرض حوار اختيار اللغة بعد 6 ثوان
     Future.delayed(const Duration(seconds: 6), () {
       if (mounted) {
@@ -277,43 +289,99 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildAnimation() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // شعار التطبيق مع تأثير ظهور تدريجي
-          TweenAnimationBuilder<double>(
-            duration: const Duration(seconds: 3),
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.scale(
-                  scale: value,
-                  child: Image.asset(
-                    'assets/images/Tawssil@logo.png',
-                    width: 200,
-                    height: 200,
+    // استخدام MediaQuery للحصول على أبعاد الشاشة
+    final screenSize = MediaQuery.of(context).size;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
+
+    // حساب الأحجام المتجاوبة
+    final logoSize =
+        isLandscape ? screenSize.height * 0.3 : screenSize.width * 0.4;
+    final lottieSize =
+        isLandscape ? screenSize.height * 0.4 : screenSize.width * 0.7;
+    final spaceBetween =
+        isLandscape ? screenSize.height * 0.02 : screenSize.height * 0.03;
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            const Color(0xFF2F9C95),
+            const Color(0xFF2F9C95).withOpacity(0.8),
+          ],
+        ),
+      ),
+      child: Center(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // شعار التطبيق مع تأثير ظهور تدريجي
+              TweenAnimationBuilder<double>(
+                duration: const Duration(seconds: 2),
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                curve: Curves.easeOutBack,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Transform.scale(
+                      scale: value,
+                      child: Image.asset(
+                        'assets/images/Tawssil@logo.png',
+                        width: logoSize,
+                        height: logoSize,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: spaceBetween),
+              // رسوم متحركة للتحميل
+              AnimatedOpacity(
+                opacity: 1.0,
+                duration: const Duration(milliseconds: 1000),
+                child: SizedBox(
+                  width: lottieSize,
+                  height: lottieSize * 0.8,
+                  child: Lottie.network(
+                    'https://lottie.host/704d7228-b25f-4aa5-960d-bd8b66a6257c/vaWOhNBobl.json',
+                    fit: BoxFit.contain,
+                    repeat: true,
+                    animate: true,
+                    frameRate: const FrameRate(120),
                   ),
                 ),
-              );
-            },
+              ),
+              SizedBox(height: spaceBetween),
+              // نص متحرك
+              TweenAnimationBuilder<double>(
+                duration: const Duration(seconds: 2),
+                tween: Tween<double>(begin: 0.0, end: 1.0),
+                curve: Curves.easeIn,
+                builder: (context, value, child) {
+                  return Opacity(
+                    opacity: value,
+                    child: Text(
+                      'welcome_to_tawssil'.tr(),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isLandscape ? 22 : 24,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                },
+              ),
+            ],
           ),
-          const SizedBox(height: 30),
-          // رسوم متحركة للتحميل
-          SizedBox(
-            width: 300,
-            height: 300,
-            child: Lottie.network(
-              'https://lottie.host/704d7228-b25f-4aa5-960d-bd8b66a6257c/vaWOhNBobl.json',
-              fit: BoxFit.contain,
-              repeat: true,
-              animate: true,
-              frameRate:
-                  const FrameRate(120), // معدل إطارات أعلى للحركة الأكثر سلاسة
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -883,11 +951,18 @@ class _HomePageState extends State<HomePage>
                                         final userData = result['user'];
                                         if (kDebugMode) {
                                           debugPrint('USER DATA: $userData');
+                                          debugPrint(
+                                              'USER PHOTO PATH: ${userData['photo_profile']}');
                                         }
 
                                         // تحويل userData إلى كائن User
                                         final user = User.fromJson(userData,
                                             result['tokens']?['access'] ?? '');
+
+                                        if (kDebugMode) {
+                                          debugPrint(
+                                              'USER OBJECT: ${user.username}, Photo: ${user.photoProfile}');
+                                        }
 
                                         final userType = user.userType;
                                         final statut =
