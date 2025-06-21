@@ -1,32 +1,65 @@
-# Use the latest Python 3.12 slim image with pinned digest
-FROM python:3.12-slim@sha256:47800d31d4ee0d639d83c0f16c095eb18e1a70c22e511ccef307305e3fbea5c6
+# Utiliser une image Python officielle comme base avec une version spécifique pour éviter les vulnérabilités
+FROM python:3.11-slim-bookworm
 
-# Set working directory in container
+# Définir des variables d'environnement pour optimiser Python
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Définir le répertoire de travail dans le conteneur
 WORKDIR /app
 
-# Install minimal required dependencies
-RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get install -y --no-install-recommends \
-    gcc \
-    python3-dev \
-    libpq-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Mettre à jour et installer les dépendances système nécessaires
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
+        build-essential \
+        libpq-dev \
+        gettext \
+        postgresql-client \
+        curl \
+        netcat-openbsd \
+        libgdal-dev \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
-COPY requirements.txt .
+# Copier uniquement le fichier requirements.txt d'abord pour profiter du cache Docker
+COPY requirements.txt /app/
+RUN pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip check
 
-# Install Python dependencies
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+# Copier le reste du projet dans le conteneur
+COPY . /app/
 
-# Copy project files to container
-COPY . .
+# Analyser et corriger les vulnérabilités des dépendances Python
+RUN pip install safety \
+    && safety check --full-report || true \
+    && pip install pip-audit \
+    && pip-audit --fix || true \
+    && pip uninstall -y safety pip-audit
 
-# Add healthcheck to verify application is running
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD python -c "import requests; requests.get('http://localhost:8000/health/')" || exit 1
+# Créer un utilisateur non-root pour plus de sécurité
+RUN useradd -m appuser --uid 10001
+RUN chown -R appuser:appuser /app
+USER appuser
 
-# Run Django server with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "tawssil_backend.wsgi:application"]
+# Créer les répertoires nécessaires pour les fichiers statiques et médias
+RUN mkdir -p /app/tawssil_backend/static /app/tawssil_backend/media
+
+# Copier et configurer le script d'entrée
+COPY --chown=appuser:appuser ./docker-entrypoint.sh /app/
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Collecter les fichiers statiques Django
+RUN python tawssil_backend/manage.py collectstatic --noinput
+
+# Exposer le port sur lequel l'application s'exécutera
+EXPOSE 8000
+
+# Configurer le point d'entrée pour exécuter le script d'initialisation
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
+# Commande par défaut pour démarrer Gunicorn avec les paramètres optimaux
+CMD ["gunicorn", "tawssil_backend.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--threads", "2", "--timeout", "60"]

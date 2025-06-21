@@ -11,6 +11,8 @@ on:
     paths:
       - 'tawssil_frontend/**'
       - '.github/workflows/flutter_ci.yml'
+  # Permettre l'exécution manuelle du workflow
+  workflow_dispatch:
 
 jobs:
   flutter_test:
@@ -21,27 +23,41 @@ jobs:
         working-directory: tawssil_frontend
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      # Configuration de Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.19.3'
           channel: 'stable'
           cache: true
       
       - name: Install dependencies
         run: flutter pub get
       
+      # Vérification du formatage du code
       - name: Verify formatting
         run: flutter format --set-exit-if-changed lib
       
+      # Analyse statique du code
       - name: Analyze project source
         run: flutter analyze
       
+      # Exécution des tests unitaires
       - name: Run tests
-        run: flutter test
+        run: flutter test --coverage
         
+      # Génération du rapport de couverture
+      - name: Generate coverage report
+        run: |
+          if [ -d "coverage" ]; then
+            dart pub global activate lcov_dart
+            dart pub global run lcov_dart:lcov --output=coverage/lcov.info
+          fi
+        continue-on-error: true
+        
+      # Exécution des tests d'intégration
       - name: Run integration tests (if available)
         run: |
           if [ -d "integration_test" ]; then
@@ -49,6 +65,14 @@ jobs:
           else
             echo "No integration tests found, skipping."
           fi
+        continue-on-error: true
+        
+      # Upload du rapport de couverture
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: tawssil_frontend/coverage
         continue-on-error: true
         
   security_scan:
@@ -59,30 +83,46 @@ jobs:
         working-directory: tawssil_frontend
         
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      # Configuration de Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.19.3'
           channel: 'stable'
           cache: true
           
       - name: Install dependencies
         run: flutter pub get
       
+      # Analyse des dépendances avec OWASP
       - name: Setup OWASP Dependency-Check
-        uses: ankane/setup-dependency-check@v1
-        
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: 'Tawssil-Frontend'
+          path: '.'
+          format: 'HTML'
+          out: 'dependency-check-report'
+      
       - name: Run Dependency-Check
         run: |
-          dependency-check --scan . --out dependency-check-report.html --format HTML
+          echo "Dependency check completed"
           
-      - name: Upload dependency check report
-        uses: actions/upload-artifact@v3
+      # Analyse des vulnérabilités des dépendances Flutter
+      - name: Check Flutter dependencies for vulnerabilities
+        run: |
+          dart pub global activate dependency_validator
+          dart pub global run dependency_validator:dependency_validator
+        continue-on-error: true
+          
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
-          path: tawssil_frontend/dependency-check-report.html
+          name: security-reports
+          path: |
+            tawssil_frontend/dependency-check-report.html
+            tawssil_frontend/dependency-validator-report.txt
 
   build_android:
     name: Build Android APK
@@ -93,32 +133,44 @@ jobs:
         working-directory: tawssil_frontend
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      # Configuration de Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.19.3'
           channel: 'stable'
           cache: true
       
       - name: Install dependencies
         run: flutter pub get
       
+      # Génération des fichiers de traduction
+      - name: Generate l10n files
+        run: |
+          if [ -d "lib/translations" ]; then
+            flutter pub run easy_localization:generate -S assets/translations -f keys -o locale_keys.g.dart
+            flutter pub run easy_localization:generate -S assets/translations -f json -o codegen_loader.g.dart
+          fi
+        continue-on-error: true
+      
+      # Construction de l'APK
       - name: Build APK
         run: flutter build apk --release
       
       - name: Upload APK
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-apk
           path: tawssil_frontend/build/app/outputs/flutter-apk/app-release.apk
           
+      # Construction de l'App Bundle
       - name: Build App Bundle
         run: flutter build appbundle --release
         
       - name: Upload App Bundle
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release-aab
           path: tawssil_frontend/build/app/outputs/bundle/release/app-release.aab
@@ -132,21 +184,33 @@ jobs:
         working-directory: tawssil_frontend
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
+      # Configuration de Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.19.3'
           channel: 'stable'
           cache: true
       
       - name: Install dependencies
         run: flutter pub get
       
+      # Génération des fichiers de traduction
+      - name: Generate l10n files
+        run: |
+          if [ -d "lib/translations" ]; then
+            flutter pub run easy_localization:generate -S assets/translations -f keys -o locale_keys.g.dart
+            flutter pub run easy_localization:generate -S assets/translations -f json -o codegen_loader.g.dart
+          fi
+        continue-on-error: true
+      
+      # Construction pour iOS
       - name: Build iOS
         run: flutter build ios --release --no-codesign
       
+      # Configuration de Ruby et Fastlane
       - name: Setup Ruby and Fastlane
         uses: ruby/setup-ruby@v1
         with:
@@ -157,13 +221,16 @@ jobs:
       - name: Install Fastlane
         run: cd ios && gem install fastlane
       
+      # Création du Gemfile si nécessaire
       - name: Create Fastlane Gemfile if not exists
         run: |
           if [ ! -f "ios/Gemfile" ]; then
             echo 'source "https://rubygems.org"' > ios/Gemfile
             echo 'gem "fastlane"' >> ios/Gemfile
+            echo 'gem "cocoapods"' >> ios/Gemfile
           fi
 
+      # Création du Fastfile si nécessaire
       - name: Create Fastfile if not exists
         run: |
           mkdir -p ios/fastlane
@@ -177,7 +244,41 @@ jobs:
             echo 'end' >> ios/fastlane/Fastfile
           fi
 
+      # Construction avec Fastlane
       - name: Build with Fastlane
         run: cd ios && bundle install && bundle exec fastlane build
         env:
           FASTLANE_SKIP_UPDATE_CHECK: true 
+          
+  deploy_web:
+    name: Deploy Web App
+    needs: [flutter_test, security_scan]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    defaults:
+      run:
+        working-directory: tawssil_frontend
+        
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Configuration de Flutter
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.19.3'
+          channel: 'stable'
+          cache: true
+          
+      - name: Install dependencies
+        run: flutter pub get
+        
+      # Construction de la version web
+      - name: Build Web
+        run: flutter build web --release
+        
+      - name: Upload Web Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: tawssil_frontend/build/web 

@@ -322,6 +322,9 @@ class CodegenLoader extends AssetLoader {
     "photo_vignette": "صورة الملصق",
     "photo_carte_municipale": "صورة البطاقة البلدية",
     "work_time": "ساعات العمل",
+    "status_updated_success": "تم تحديث الحالة بنجاح",
+    "status_update_failed": "فشل في تحديث الحالة",
+    "error_occurred": "حدث خطأ",
     "you_are_here": "أنت هنا"
   };
   static const Map<String, dynamic> _en = {
@@ -629,6 +632,9 @@ class CodegenLoader extends AssetLoader {
     "photo_vignette": "Sticker Photo",
     "photo_carte_municipale": "Municipal Card",
     "work_time": "Working Hours",
+    "status_updated_success": "Status updated successfully",
+    "status_update_failed": "Failed to update status",
+    "error_occurred": "An error occurred",
     "you_are_here": "You are here"
   };
   static const Map<String, dynamic> _fr = {
@@ -854,7 +860,7 @@ class CodegenLoader extends AssetLoader {
     "registration_card": "Carte grise",
     "insurance_photo": "Photo de l'assurance",
     "sticker_photo": "Photo de la vignette",
-    "municipal_card": "Carte municipale",
+    "municipal_card": "Carte Municipale",
     "add_photo": "Ajouter une photo",
     "choose_image_source": "Choisir la source de l'image",
     "camera": "Caméra",
@@ -943,7 +949,10 @@ class CodegenLoader extends AssetLoader {
     "photo_assurance": "Photo de l'Assurance",
     "photo_vignette": "Photo de la Vignette",
     "photo_carte_municipale": "Carte Municipale",
-    "work_time": "Heures de Travail"
+    "work_time": "Heures de Travail",
+    "status_updated_success": "Statut mis à jour avec succès",
+    "status_update_failed": "Statut non mis à jour",
+    "error_occurred": "Une erreur est survenue"
   };
   static const Map<String, Map<String, dynamic>> mapLocales = {
     "ar": _ar,

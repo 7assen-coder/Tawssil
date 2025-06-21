@@ -2617,6 +2617,8 @@ def create_provider(request):
             telephone=data['telephone'],
             adresse=data.get('adresse', ''),
             type_utilisateur='Fournisseur',
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude'),
         )
         user.set_password(data['password'])
         if files.get('photo_profile'):

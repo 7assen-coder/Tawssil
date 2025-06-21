@@ -5,12 +5,16 @@ on:
     branches: [ main, master, develop ]
     paths:
       - 'tawssil_backend/**'
+      - 'requirements.txt'
       - '.github/workflows/backend_ci.yml'
   pull_request:
     branches: [ main, master, develop ]
     paths:
       - 'tawssil_backend/**'
+      - 'requirements.txt'
       - '.github/workflows/backend_ci.yml'
+  # Permettre l'exécution manuelle du workflow
+  workflow_dispatch:
 
 jobs:
   test:
@@ -21,8 +25,9 @@ jobs:
         working-directory: tawssil_backend
 
     services:
+      # Configuration de PostgreSQL pour les tests
       postgres:
-        image: postgres:14
+        image: postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -34,21 +39,39 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      # Ajout de Redis pour les tests de cache
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
       
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest pytest-django coverage
+          if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
+          pip install pytest pytest-django pytest-cov coverage
+      
+      # Vérification des migrations
+      - name: Check Migrations
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/tawssil_test
+          DJANGO_SECRET_KEY: 'django-insecure-for-testing-only'
+          DEBUG: 'True'
+        run: python manage.py makemigrations --check --dry-run
       
       - name: Run Migrations
         env:
@@ -57,27 +80,34 @@ jobs:
           DEBUG: 'True'
         run: python manage.py migrate
       
+      # Tests avec couverture de code améliorée
       - name: Run Tests with Coverage
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/tawssil_test
           DJANGO_SECRET_KEY: 'django-insecure-for-testing-only'
           DEBUG: 'True'
+          REDIS_URL: 'redis://localhost:6379/0'
         run: |
-          coverage run --source='.' manage.py test
-          coverage xml
-          coverage report
+          pytest --cov=. --cov-report=xml --cov-report=html
+          coverage report --fail-under=70
           
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: tawssil_backend/coverage.xml
+          path: |
+            tawssil_backend/coverage.xml
+            tawssil_backend/htmlcov/
       
-      - name: Run Linting
+      # Analyse de code statique améliorée
+      - name: Run Linting and Code Quality Checks
         run: |
-          pip install flake8 pylint
+          pip install flake8 pylint black isort mypy
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          pylint --disable=all --enable=unused-import,unused-variable tawssil_backend
+          pylint --disable=all --enable=unused-import,unused-variable,unused-argument tawssil_backend
+          black --check .
+          isort --check-only --profile black .
+          mypy --ignore-missing-imports .
 
   security_scan:
     name: Security Scan
@@ -87,33 +117,43 @@ jobs:
         working-directory: tawssil_backend
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
       
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install safety bandit
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install safety bandit semgrep
+          if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
       
+      # Analyse de sécurité avec Safety
       - name: Run Safety Check
-        run: safety check -r requirements.txt --full-report
+        run: safety check -r ../requirements.txt --full-report --output safety-report.txt
         continue-on-error: true
       
+      # Analyse de sécurité avec Bandit
       - name: Run Bandit Security Analysis
         run: bandit -r . -f html -o bandit-report.html
         continue-on-error: true
+        
+      # Analyse de sécurité avec Semgrep
+      - name: Run Semgrep Analysis
+        run: semgrep --config=p/django . --output semgrep-report.json
+        continue-on-error: true
       
-      - name: Upload security report
-        uses: actions/upload-artifact@v3
+      - name: Upload security reports
+        uses: actions/upload-artifact@v4
         with:
           name: security-reports
-          path: tawssil_backend/bandit-report.html
+          path: |
+            tawssil_backend/bandit-report.html
+            tawssil_backend/safety-report.txt
+            tawssil_backend/semgrep-report.json
 
   performance_test:
     name: Performance Testing
@@ -125,7 +165,7 @@ jobs:
     
     services:
       postgres:
-        image: postgres:14
+        image: postgres:15
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
@@ -137,52 +177,86 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
       
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
           pip install locust
       
+      # Démarrage du serveur Django pour les tests
       - name: Run Django Server for Testing
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/tawssil_test
           DJANGO_SECRET_KEY: 'django-insecure-for-testing-only'
           DEBUG: 'True'
+          REDIS_URL: 'redis://localhost:6379/0'
         run: |
           python manage.py migrate
+          python manage.py loaddata test_data.json || echo "No test data to load"
           python manage.py runserver &
           sleep 5
       
+      # Création d'un fichier Locust amélioré pour les tests de performance
       - name: Create Locust file if not exists
         run: |
           if [ ! -f "locustfile.py" ]; then
             echo 'from locust import HttpUser, task, between' > locustfile.py
+            echo 'import random' >> locustfile.py
             echo '' >> locustfile.py
-            echo 'class BasicUser(HttpUser):' >> locustfile.py
-            echo '    wait_time = between(1, 2)' >> locustfile.py
+            echo 'class ApiUser(HttpUser):' >> locustfile.py
+            echo '    wait_time = between(1, 3)' >> locustfile.py
             echo '' >> locustfile.py
-            echo '    @task' >> locustfile.py
+            echo '    def on_start(self):' >> locustfile.py
+            echo '        # Tentative de connexion pour obtenir un token' >> locustfile.py
+            echo '        try:' >> locustfile.py
+            echo '            response = self.client.post("/api/login/", json={"username": "testuser", "password": "testpassword"})' >> locustfile.py
+            echo '            if response.status_code == 200:' >> locustfile.py
+            echo '                self.token = response.json().get("token", "")' >> locustfile.py
+            echo '                self.client.headers.update({"Authorization": f"Bearer {self.token}"})' >> locustfile.py
+            echo '        except:' >> locustfile.py
+            echo '            pass' >> locustfile.py
+            echo '' >> locustfile.py
+            echo '    @task(3)' >> locustfile.py
             echo '    def health_check(self):' >> locustfile.py
             echo '        self.client.get("/health/")' >> locustfile.py
+            echo '' >> locustfile.py
+            echo '    @task(2)' >> locustfile.py
+            echo '    def get_providers(self):' >> locustfile.py
+            echo '        self.client.get("/api/providers-stats/")' >> locustfile.py
+            echo '' >> locustfile.py
+            echo '    @task(1)' >> locustfile.py
+            echo '    def get_users(self):' >> locustfile.py
+            echo '        self.client.get("/api/list-users/")' >> locustfile.py
           fi
       
+      # Exécution des tests de performance avec Locust
       - name: Run Performance Tests
         run: |
-          locust --headless -u 10 -r 1 --host http://localhost:8000 --run-time 30s --html locust-report.html
+          locust --headless -u 20 -r 2 --host http://localhost:8000 --run-time 60s --html locust-report.html
         continue-on-error: true
       
       - name: Upload performance report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: performance-report
           path: tawssil_backend/locust-report.html
@@ -193,10 +267,10 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
       
       - name: Login to Docker Hub
         uses: docker/login-action@v2

@@ -1,70 +1,194 @@
-# Getting Started with Create React App
+# Tableau de Bord d'Administration Tawssil
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Aperçu
 
-## Available Scripts
+Le tableau de bord d'administration est une interface web développée avec React qui permet aux administrateurs de gérer tous les aspects de la plateforme Tawssil, y compris les utilisateurs, les commandes, les produits et les paiements.
 
-In the project directory, you can run:
+## Technologies Utilisées
 
-### `npm start`
+- React 19.1.0
+- Material UI 7.1.0
+- Axios pour les requêtes API
+- Chart.js pour les graphiques
+- Leaflet pour les cartes interactives
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Fonctionnalités
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- **Gestion des Utilisateurs**
+  - Clients
+  - Livreurs
+  - Fournisseurs
+  - Administrateurs
 
-### `npm test`
+- **Gestion des Commandes**
+  - Suivi en temps réel
+  - Historique des commandes
+  - Statistiques de livraison
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Gestion des Produits**
+  - Catalogues des fournisseurs
+  - Ajout/modification de produits
+  - Gestion des catégories
 
-### `npm run build`
+- **Rapports et Statistiques**
+  - Chiffre d'affaires
+  - Performances des livreurs
+  - Activité des clients
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- **Vérification des Documents**
+  - Validation des documents des livreurs
+  - Vérification des fournisseurs
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Prérequis
 
-### `npm run eject`
+- Node.js 18+ 
+- npm 9+ ou yarn 1.22+
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Installation des Dépendances
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+# Avec npm
+npm install
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# Avec yarn
+yarn install
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Configuration
 
-## Learn More
+Créez un fichier `.env` à la racine du projet avec les variables suivantes :
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```
+REACT_APP_API_URL=http://localhost:8000/api
+REACT_APP_MAPS_API_KEY=votre_clé_api_maps
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Utilisation
 
-### Code Splitting
+### Démarrage du Serveur de Développement
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```bash
+# Avec npm
+npm start
 
-### Analyzing the Bundle Size
+# Avec yarn
+yarn start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+L'application sera accessible à l'adresse [http://localhost:3000](http://localhost:3000).
 
-### Making a Progressive Web App
+### Construction pour la Production
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+# Avec npm
+npm run build
 
-### Advanced Configuration
+# Avec yarn
+yarn build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Les fichiers de production seront générés dans le dossier `build`.
 
-### Deployment
+### Exécution des Tests
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+```bash
+# Avec npm
+npm test
 
-### `npm run build` fails to minify
+# Avec yarn
+yarn test
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## Structure du Projet
+
+```
+admin_dashboard/
+├── public/                # Fichiers statiques
+├── src/
+│   ├── components/        # Composants réutilisables
+│   │   ├── Header.js
+│   │   ├── Sidebar.js
+│   │   └── ...
+│   ├── context/           # Contextes React
+│   ├── pages/             # Pages principales
+│   │   ├── Dashboard.js
+│   │   ├── DriverManagement.js
+│   │   ├── ProviderManagement.js
+│   │   └── ...
+│   ├── services/          # Services API
+│   │   └── api.js
+│   ├── styles/            # Fichiers CSS
+│   ├── App.js             # Composant principal
+│   └── index.js           # Point d'entrée
+└── package.json           # Dépendances
+```
+
+## Authentification
+
+Le tableau de bord utilise l'authentification JWT. Les administrateurs doivent se connecter avec leurs identifiants pour accéder au système.
+
+## Gestion des Utilisateurs
+
+### Clients
+
+- Affichage des informations des clients
+- Historique des commandes
+- Gestion des comptes (activation/désactivation)
+
+### Livreurs
+
+- Vérification des documents (permis, assurance, etc.)
+- Suivi des performances
+- Gestion des disponibilités
+
+### Fournisseurs
+
+- Validation des informations commerciales
+- Gestion des catalogues de produits
+- Suivi des ventes et commandes
+
+## Personnalisation
+
+### Thème
+
+Le tableau de bord utilise Material UI avec un thème personnalisable. Pour modifier le thème, éditez le fichier `src/theme.js`.
+
+### Langues
+
+L'interface est disponible en français par défaut. Pour ajouter d'autres langues, utilisez le système de traduction intégré.
+
+## Déploiement
+
+### Avec Nginx
+
+1. Construisez l'application pour la production
+2. Copiez le contenu du dossier `build` dans le répertoire de votre serveur web
+3. Configurez Nginx pour servir l'application et rediriger les requêtes API
+
+Exemple de configuration Nginx :
+
+```nginx
+server {
+    listen 80;
+    server_name admin.tawssil.com;
+    
+    root /var/www/admin_dashboard/build;
+    index index.html;
+    
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+    
+    location /api {
+        proxy_pass http://backend:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## Support
+
+Pour toute question ou assistance, veuillez contacter l'équipe de développement à sidahmedmhd08@gmail.com

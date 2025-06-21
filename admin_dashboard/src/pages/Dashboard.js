@@ -441,8 +441,8 @@ const Dashboard = () => {
                       dot={{ r: 4, fill: "#1976d2" }}
                       activeDot={{ r: 6, fill: "#1976d2" }}
                     />
-                  </LineChart>
-                </ResponsiveContainer>
+                    </LineChart>
+                  </ResponsiveContainer>
               </div>
               <div className="chart-footer">
                 <span>Données des 7 derniers jours</span>
@@ -511,7 +511,7 @@ const Dashboard = () => {
                       activeDot={{ r: 6, fill: "#43a047" }}
                     />
                   </AreaChart>
-                </ResponsiveContainer>
+                  </ResponsiveContainer>
               </div>
               <div className="chart-footer">
                 <span>Total: {totalVoyages} voyages</span>
@@ -524,63 +524,63 @@ const Dashboard = () => {
             {/* Dernières demandes de chauffeurs */}
             <div className="statistic-card">
               <h3 className="statistic-card-header">Dernières demandes de chauffeurs</h3>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>N° Voyage</th>
-                      <th>Client</th>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>N° Voyage</th>
+                          <th>Client</th>
                       {!isSmallScreen && <th>Destination</th>}
-                      <th>Tarif</th>
-                      <th>Date départ</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentVoyages.map((voyage) => (
-                      <tr key={voyage.id_voyage}>
-                        <td>{voyage.id_voyage}</td>
-                        <td>{voyage.voyageur_username || '-'}</td>
+                          <th>Tarif</th>
+                          <th>Date départ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentVoyages.map((voyage) => (
+                          <tr key={voyage.id_voyage}>
+                            <td>{voyage.id_voyage}</td>
+                            <td>{voyage.voyageur_username || '-'}</td>
                         {!isSmallScreen && <td>{voyage.destination}</td>}
-                        <td>{voyage.tarif_transport}</td>
-                        <td>{voyage.date_depart ? new Date(voyage.date_depart).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <td>{voyage.tarif_transport}</td>
+                            <td>{voyage.date_depart ? new Date(voyage.date_depart).toLocaleDateString('fr-FR', { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
             </div>
             
             {/* Dernières livraisons */}
             <div className="statistic-card">
               <h3 className="statistic-card-header">Dernières livraisons</h3>
-              <div className="table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>N°</th>
+                  <div className="table-container">
+                    <table className="data-table">
+                      <thead>
+                        <tr>
+                          <th>N°</th>
                       {!isSmallScreen && <th>Livreur</th>}
-                      <th>Client</th>
-                      <th>Date</th>
-                      <th>Montant</th>
-                      <th>Statut</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentLivreurLivraisons.map((cmd) => (
-                      <tr key={cmd.id_commande}>
-                        <td>{cmd.id_commande}</td>
+                          <th>Client</th>
+                          <th>Date</th>
+                          <th>Montant</th>
+                          <th>Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recentLivreurLivraisons.map((cmd) => (
+                          <tr key={cmd.id_commande}>
+                            <td>{cmd.id_commande}</td>
                         {!isSmallScreen && <td>{cmd.livreur_username || '-'}</td>}
-                        <td>{cmd.client_username || '-'}</td>
-                        <td>{new Date(cmd.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}</td>
-                        <td>{cmd.montant_total}</td>
-                        <td>
-                          <span className={`status-badge status-${cmd.statut.replace(/\s/g, '').toLowerCase()}`}>{cmd.statut}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <td>{cmd.client_username || '-'}</td>
+                            <td>{new Date(cmd.date_commande).toLocaleDateString('fr-FR', { month: 'short', day: 'numeric' })}</td>
+                            <td>{cmd.montant_total}</td>
+                            <td>
+                              <span className={`status-badge status-${cmd.statut.replace(/\s/g, '').toLowerCase()}`}>{cmd.statut}</span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
             </div>
           </div>
         )}

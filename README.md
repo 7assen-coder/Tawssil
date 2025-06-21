@@ -1,156 +1,205 @@
-# Tawssil Project / مشروع توصيل
+# Projet Tawssil - Plateforme de Livraison
 
-## CI/CD Pipeline / خط أنابيب CI/CD
+## Aperçu du Projet
 
-This project uses GitHub Actions for Continuous Integration and Continuous Delivery (CI/CD). The following steps are automatically executed on each push or pull request to the main branch:
+Tawssil est une plateforme complète de livraison qui connecte les clients, les fournisseurs et les livreurs. Le système comprend trois composants principaux :
 
-هذا المشروع يستخدم GitHub Actions لتنفيذ خط أنابيب التكامل المستمر/التسليم المستمر (CI/CD). يتم تنفيذ الخطوات التالية تلقائياً عند كل push أو pull request إلى الفرع main:
+1. **Application Mobile Flutter** - Pour les clients et les livreurs
+2. **Tableau de Bord d'Administration** - Interface web pour la gestion de la plateforme
+3. **Backend Django** - API RESTful pour gérer toutes les opérations
 
-### Pipeline Steps / خطوات خط الأنابيب
+## Architecture du Système
 
-1. **Environment Setup / إعداد البيئة**
-   - Install Flutter SDK / تثبيت Flutter SDK
-   - Setup PostgreSQL / تثبيت PostgreSQL
-   - Configure database / إعداد قاعدة البيانات
-
-2. **Code Verification / التحقق من الكود**
-   - Code analysis (flutter analyze) / تحليل الكود
-   - Run tests (flutter test) / تشغيل الاختبارات
-   - Verify database connection / التحقق من اتصال قاعدة البيانات
-
-3. **Application Building / بناء التطبيق**
-   - Build APK and AAB for Android / بناء ملفات APK و AAB للتطبيق
-   - Build IPA for iOS / بناء ملف IPA للتطبيق
-   - Upload build artifacts / رفع ملفات البناء كـ artifacts
-
-4. **Deployment / النشر**
-   - Deploy backend to production server / نشر الخلفية على خادم الإنتاج
-   - Release mobile app to stores / نشر التطبيق المحمول على المتاجر
-
-### CI/CD Setup / إعداد CI/CD
-
-To set up the CI/CD pipeline, you need to configure the following GitHub secrets:
-
-لإعداد خط أنابيب CI/CD، تحتاج إلى تكوين الأسرار التالية في GitHub:
-
-#### Backend Secrets / أسرار الخلفية
-- `DOCKER_HUB_USERNAME`: Docker Hub username / اسم المستخدم في Docker Hub
-- `DOCKER_HUB_ACCESS_TOKEN`: Docker Hub access token / رمز الوصول إلى Docker Hub
-- `SERVER_HOST`: Deployment server address / عنوان خادم النشر
-- `SERVER_USERNAME`: Server username / اسم المستخدم للخادم
-- `SERVER_SSH_KEY`: SSH key for server access / مفتاح SSH للاتصال بالخادم
-
-#### Android Deployment Secrets / أسرار نشر أندرويد
-- `PLAY_STORE_JSON_KEY`: Google Play Store JSON key / مفتاح JSON لحساب Google Play Store
-
-#### iOS Deployment Secrets / أسرار نشر iOS
-- `PROVISIONING_PROFILE`: Base64 encoded provisioning profile / ملف التوقيع للتطبيق (مشفر بـ base64)
-- `CERTIFICATE_P12`: Base64 encoded signing certificate / شهادة التوقيع (مشفرة بـ base64)
-- `CERTIFICATE_PASSWORD`: Certificate password / كلمة المرور لشهادة التوقيع
-- `APPSTORE_API_KEY_JSON`: App Store Connect API key / مفتاح API لـ App Store Connect
-
-### Usage / كيفية الاستخدام
-
-1. Ensure you have access to the repository / تأكد من أن لديك حق الوصول إلى المستودع
-2. Push changes to the main branch / قم بعمل push للتغييرات إلى الفرع main
-3. The pipeline will run automatically / سيتم تشغيل خط الأنابيب تلقائياً
-4. Monitor workflow progress in the Actions tab on GitHub / يمكنك متابعة سير العمل من خلال تبويب Actions في GitHub
-
-To deploy mobile apps manually:
-1. Go to GitHub Actions tab / انتقل إلى تبويب Actions في GitHub
-2. Select "Mobile Deployment" workflow / اختر سير عمل "Mobile Deployment"
-3. Click "Run workflow" button / انقر على زر "Run workflow"
-4. Enter app version and release notes / أدخل إصدار التطبيق وملاحظات الإصدار
-
-### System Requirements / متطلبات النظام
-
-- Flutter SDK 3.19.0 or newer / أو أحدث
-- PostgreSQL 17.4 or newer / أو أحدث
-- Node.js (optional for testing) / اختياري للاختبارات
-
-### Local Environment Setup / إعداد البيئة المحلية
-
-1. Install Flutter / تثبيت Flutter:
-```bash
-git clone https://github.com/flutter/flutter.git
-export PATH="$PATH:`pwd`/flutter/bin"
+```
+Tawssil/
+├── tawssil_frontend/   # Application mobile Flutter
+├── admin_dashboard/    # Interface d'administration React
+├── tawssil_backend/    # API backend Django
+├── nginx/              # Configuration du serveur web
+└── UIUX/               # Ressources de design
 ```
 
-2. Install PostgreSQL / تثبيت PostgreSQL:
+## Technologies Utilisées
+
+### Frontend Mobile
+- Flutter 3.19.0+
+- Dart 3.5.4+
+- Packages: http, image_picker, location, lottie, etc.
+
+### Tableau de Bord d'Administration
+- React 19.1.0
+- Material UI 7.1.0
+- Axios pour les requêtes API
+- Leaflet pour les cartes interactives
+
+### Backend
+- Django 5.2
+- Django REST Framework 3.14.0
+- PostgreSQL 13+
+- JWT pour l'authentification
+
+## Fonctionnalités Principales
+
+### Application Mobile
+- Inscription et authentification des utilisateurs
+- Vérification par OTP (email/SMS)
+- Géolocalisation en temps réel
+- Suivi des commandes
+- Système de paiement
+- Évaluations et commentaires
+
+### Tableau de Bord d'Administration
+- Gestion des utilisateurs (clients, livreurs, fournisseurs)
+- Suivi des commandes et livraisons
+- Rapports et statistiques
+- Gestion des produits et catalogues
+- Vérification des documents des livreurs
+
+### Backend
+- API RESTful sécurisée
+- Gestion des utilisateurs et des rôles
+- Traitement des commandes
+- Système de notification
+- Gestion des paiements
+
+## Prérequis
+
+- Docker et Docker Compose
+- Python 3.10+
+- Node.js 18+
+- Flutter SDK 3.19.0+
+- PostgreSQL 13+
+
+## Installation et Configuration
+
+### Configuration de l'Environnement
+
+1. Cloner le dépôt :
 ```bash
-sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
+git clone https://github.com/votre-organisation/tawssil.git
+cd tawssil
 ```
 
-3. Setup Database / إعداد قاعدة البيانات:
-```bash
-sudo -u postgres psql
-CREATE DATABASE tawssil;
-ALTER USER postgres WITH PASSWORD 'Ab@2024';
-```
-
-4. Configure environment / إعداد البيئة:
+2. Configurer les variables d'environnement :
 ```bash
 cp env.example .env
-# Edit .env file with your configuration
+# Modifier le fichier .env avec vos paramètres
 ```
 
-5. Run with Docker Compose / تشغيل باستخدام Docker Compose:
+### Lancement avec Docker
+
 ```bash
 docker-compose up -d
 ```
 
-### Local Testing / الاختبارات المحلية
+Cette commande va :
+- Créer et configurer la base de données PostgreSQL
+- Démarrer le serveur backend Django
+- Configurer le serveur Nginx
 
-You can run tests locally using / يمكنك تشغيل الاختبارات محلياً باستخدام:
+### Installation Manuelle
+
+#### Backend
 ```bash
-# Frontend tests / اختبارات الواجهة الأمامية
-cd tawssil_frontend
-flutter test
-
-# Backend tests / اختبارات الواجهة الخلفية
-cd ../
-python manage.py test
+cd tawssil_backend
+python -m venv venv
+source venv/bin/activate  # Sur Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
 ```
 
-### Troubleshooting CI/CD / استكشاف أخطاء CI/CD
+#### Tableau de Bord d'Administration
+```bash
+cd admin_dashboard
+npm install
+npm start
+```
 
-If the CI/CD pipeline fails, check:
-1. GitHub Actions logs for detailed error messages
-2. Verify all required secrets are configured correctly
-3. Ensure your code passes all tests locally before pushing
-4. Check Docker and container logs for backend deployment issues
+#### Application Mobile
+```bash
+cd tawssil_frontend
+flutter pub get
+flutter run
+```
 
-## تحسينات نظام استعادة كلمة المرور
+## Déploiement
 
-تم إجراء التعديلات التالية على نظام استعادة كلمة المرور باستخدام رموز OTP:
+### Backend
+Le backend peut être déployé sur n'importe quel serveur prenant en charge Docker :
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-### 1. حل مشكلة الرسائل المتعددة
-- إضافة متغير `_isSendingOtp` للتحكم في عمليات الإرسال المتزامنة
-- تعديل دالة `_sendInitialOTP` لمنع الاستدعاءات المتكررة
-- إضافة تأخير بسيط بين محاولات إرسال رموز OTP
-- تنظيف متغير `_lastRequestForIdentifier` وإضافة كلمة `final` له
+### Application Mobile
+Pour générer les fichiers APK/IPA pour publication :
+```bash
+cd tawssil_frontend
+flutter build apk --release  # Pour Android
+flutter build ipa --release  # Pour iOS
+```
 
-### 2. تحسين تجربة المستخدم
-- إضافة دالة `_clearAllSnackbars` لإزالة الإشعارات المتداخلة
-- تعديل رسائل الإشعارات لتكون واضحة ومترجمة
-- إضافة دعم الترجمات لرسائل نظام استعادة كلمة المرور في الإعدادات الثلاثة (العربية والإنجليزية والفرنسية)
+### Tableau de Bord d'Administration
+Pour construire l'application React pour la production :
+```bash
+cd admin_dashboard
+npm run build
+```
 
-### 3. تحسينات الأمان
-- تعديل دالة `setupDebugPrint` لتصفية رسائل السجل التي تحتوي على كلمات مثل "OTP" أو "Code"
-- إزالة رمز OTP من الإشعارات في وضع الإنتاج
-- إضافة تحقق من الحالة `mounted` قبل تحديث واجهة المستخدم
+## Pipeline CI/CD
 
-### 4. معالجة أرقام الهواتف
-- تحسين معالجة أرقام الهواتف بإضافة رمز الدولة +222 بشكل صحيح
-- مواءمة معالجة رقم الهاتف بين الواجهة والخادم
+Le projet utilise GitHub Actions pour l'intégration et le déploiement continus :
 
-### 5. تكوين Twilio
-- إضافة مفاتيح API الخاصة بـ Twilio في ملف الإعدادات
-- تكوين إرسال رسائل SMS حقيقية باستخدام Twilio
+- Tests automatisés pour le frontend et le backend
+- Construction et déploiement automatiques
+- Analyse de sécurité et de performance
 
-بفضل هذه التعديلات، تم تحسين نظام استعادة كلمة المرور بحيث:
-- يرسل رمز OTP مرة واحدة فقط
-- يخفي رمز OTP من الإشعارات والسجلات
-- يعالج أرقام الهواتف بشكل صحيح مع إضافة رمز الدولة +222
-- يستخدم Twilio لإرسال رسائل SMS حقيقية
+Pour plus de détails, consultez le fichier `.github/CI_CD_README.md`.
+
+## Documentation API
+
+L'API REST est documentée avec Swagger UI, accessible à :
+```
+http://votre-serveur/api/docs/
+```
+
+## Sécurité
+
+- Authentification JWT
+- Validation des entrées utilisateur
+- Protection CSRF
+- Chiffrement des données sensibles
+- Vérification des permissions basée sur les rôles
+
+## Développement
+
+### Structure du Code Backend
+
+```
+tawssil_backend/
+├── commandes/       # Gestion des commandes
+├── evaluations/     # Système d'évaluation
+├── messaging/       # Système de messagerie
+├── paiements/       # Traitement des paiements
+├── produits/        # Gestion des produits
+├── tawssil_backend/ # Configuration principale
+├── utilisateurs/    # Gestion des utilisateurs
+└── vehicules/       # Informations sur les véhicules
+```
+
+### Conventions de Codage
+
+- PEP 8 pour Python
+- Dart Analysis pour Flutter
+- ESLint pour JavaScript/React
+
+## Licence
+
+Propriétaire - Tous droits réservés
+
+## Contact
+
+Pour toute question ou assistance, veuillez contacter :
+- Email : Sidahmedmhd08@gmail.com
+- Site Web : www.tawssil.com

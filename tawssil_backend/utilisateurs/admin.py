@@ -26,7 +26,7 @@ class UtilisateurAdmin(admin.ModelAdmin):
     add_form = UtilisateurCreationForm
     
     # الحقول التي تظهر في قائمة المستخدمين
-    list_display = ('username', 'email', 'type_utilisateur', 'is_active', 'date_joined')
+    list_display = ('username', 'email', 'type_utilisateur', 'is_active', 'date_joined', 'display_location')
     
     # الحقول التي يمكن البحث عنها
     search_fields = ('username', 'email', 'telephone')
@@ -41,6 +41,9 @@ class UtilisateurAdmin(admin.ModelAdmin):
         }),
         ('نوع المستخدم', {
             'fields': ('type_utilisateur',)
+        }),
+        ('الموقع الجغرافي', {
+            'fields': ('latitude', 'longitude',)
         }),
         ('حالة الحساب', {
             'fields': ('is_active',)
@@ -62,6 +65,12 @@ class UtilisateurAdmin(admin.ModelAdmin):
     ordering = ('-date_joined',)
     filter_horizontal = ()
     readonly_fields = ('date_joined', 'last_login', 'last_modified')
+
+    def display_location(self, obj):
+        if obj.latitude and obj.longitude:
+            return f"{obj.latitude:.6f}, {obj.longitude:.6f}"
+        return "غير محدد"
+    display_location.short_description = 'الموقع الجغرافي'
 
 class ClientAdmin(admin.ModelAdmin):
     list_display = ('id', 'display_username', 'display_email')
@@ -196,8 +205,8 @@ class AdministrateurAdmin(admin.ModelAdmin):
     display_is_superuser.boolean = True
 
 class FournisseurAdmin(admin.ModelAdmin):
-    list_display = ('get_id_utilisateur', 'nom_commerce', 'type_fournisseur')
-    search_fields = ('utilisateur__username', 'utilisateur__email', 'nom_commerce')
+    list_display = ('get_id_utilisateur', 'nom_commerce', 'type_fournisseur', 'display_latitude', 'display_longitude')
+    search_fields = ('utilisateur__username', 'utilisateur__email', 'nom_commerce', 'utilisateur__latitude', 'utilisateur__longitude')
     list_filter = ('type_fournisseur',)
     
     def get_id_utilisateur(self, obj):
@@ -207,6 +216,14 @@ class FournisseurAdmin(admin.ModelAdmin):
     def display_email(self, obj):
         return obj.utilisateur.email if obj.utilisateur else 'Unknown'
     display_email.short_description = 'Email'
+    
+    def display_latitude(self, obj):
+        return obj.utilisateur.latitude if obj.utilisateur else None
+    display_latitude.short_description = 'Latitude'
+    
+    def display_longitude(self, obj):
+        return obj.utilisateur.longitude if obj.utilisateur else None
+    display_longitude.short_description = 'Longitude'
 
 class OTPCodeAdmin(admin.ModelAdmin):
     """إدارة رموز OTP في لوحة المشرف"""

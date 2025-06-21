@@ -1,163 +1,210 @@
-# CI/CD Guide for Tawssil App / دليل CI/CD لتطبيق توصيل
+# Guide CI/CD pour l'Application Tawssil
 
-This file explains how to set up and run the CI/CD pipelines for the application.
+Ce fichier explique comment configurer et exécuter les pipelines CI/CD pour l'application Tawssil.
 
-هذا الملف يوضح كيفية إعداد وتشغيل خطوط أنابيب CI/CD للتطبيق.
+## Structure des Fichiers
 
-## File Structure / هيكلة الملفات
+Les pipelines CI/CD pour l'application Tawssil sont composés de trois fichiers principaux :
 
-The CI/CD pipelines for Tawssil app consist of three main files:
+- `flutter_ci.yml` : Pour la construction et les tests de l'interface utilisateur (Flutter)
+- `backend_ci.yml` : Pour les tests, la construction et le déploiement du backend (Django)
+- `mobile_deployment.yml` : Pour le déploiement de l'application sur les stores (Play Store / App Store)
 
-تتكون خطوط أنابيب CI/CD لتطبيق توصيل من ثلاثة ملفات رئيسية:
+## Dépendances et Prérequis
 
-- `flutter_ci.yml`: For building and testing the user interface (Flutter) / لبناء واختبار واجهة المستخدم (Flutter)
-- `backend_ci.yml`: For testing, building, and deploying the backend (Django) / لاختبار وبناء ونشر الواجهة الخلفية (Django)
-- `mobile_deployment.yml`: For deploying the app to app stores (Play Store / App Store) / لنشر التطبيق على متاجر التطبيقات (Play Store / App Store)
+### Backend (Django)
+Toutes les dépendances sont listées dans le fichier `requirements.txt` à la racine du projet. Les principales dépendances incluent :
 
-## Enhanced Features / الميزات المحسّنة
+- Django 5.2.1
+- Django REST Framework 3.15.0
+- PostgreSQL (via psycopg2-binary)
+- Redis pour la mise en cache
+- Outils de géolocalisation (geopy, django-leaflet)
+- Services de messagerie (Twilio, SendGrid)
 
-Our CI/CD pipeline now includes:
+### Frontend (Flutter)
+Les dépendances sont gérées via le fichier `pubspec.yaml` dans le dossier `tawssil_frontend`. Les principales dépendances incluent :
 
-تتضمن خطوط أنابيب CI/CD الخاصة بنا الآن:
+- Flutter SDK 3.19.3 ou supérieur
+- Dart 3.3.0 ou supérieur
+- easy_localization pour l'internationalisation
+- http/dio pour les requêtes API
+- provider/bloc pour la gestion d'état
 
-1. **Security Scanning / فحص الأمان**
-   - OWASP Dependency-Check for frontend / فحص التبعيات لواجهة المستخدم
-   - Safety and Bandit tools for backend / أدوات Safety و Bandit للواجهة الخلفية
+### Environnement CI/CD
+- GitHub Actions pour l'automatisation
+- Docker pour la conteneurisation
+- Fastlane pour le déploiement iOS
+- Gradle pour le déploiement Android
 
-2. **Performance Testing / اختبار الأداء**
-   - Locust performance testing for backend / اختبار الأداء باستخدام Locust للواجهة الخلفية
-   - Automated reports for review / تقارير آلية للمراجعة
+## Fonctionnalités Améliorées
 
-3. **Phased Rollout / النشر التدريجي**
-   - Controlled percentage rollout for Android / نشر تدريجي محكوم لأجهزة Android
-   - Phased release for iOS / إصدار تدريجي لأجهزة iOS
+Notre pipeline CI/CD comprend maintenant :
 
-4. **Validation / التحقق**
-   - Version format validation / التحقق من تنسيق الإصدار
-   - Automated testing before deployment / اختبار آلي قبل النشر
+1. **Analyse de Sécurité**
+   - OWASP Dependency-Check pour le frontend
+   - Outils Safety, Bandit et Semgrep pour le backend
+   - Rapports de vulnérabilités automatisés
 
-## Required Secrets / الأسرار المطلوبة
+2. **Tests de Performance**
+   - Tests de performance Locust pour le backend avec scénarios réalistes
+   - Tests de charge simulant des utilisateurs authentifiés
+   - Rapports automatisés pour révision
 
-The following secrets must be added to GitHub Repository Secrets:
+3. **Déploiement Progressif**
+   - Déploiement contrôlé par pourcentage pour Android
+   - Publication progressive pour iOS
+   - Déploiement web automatisé
 
-يجب إضافة الأسرار التالية في إعدادات GitHub Repository Secrets:
+4. **Validation**
+   - Validation du format de version
+   - Tests automatisés avant déploiement
+   - Vérification des migrations Django
 
-### For Backend / للواجهة الخلفية:
-- `DOCKER_HUB_USERNAME`: Docker Hub username / اسم المستخدم في Docker Hub
-- `DOCKER_HUB_ACCESS_TOKEN`: Docker Hub access token / رمز الوصول إلى Docker Hub
-- `SERVER_HOST`: Server address for deployment / عنوان الخادم للنشر
-- `SERVER_USERNAME`: Server username / اسم المستخدم للخادم
-- `SERVER_SSH_KEY`: SSH key for server connection / مفتاح SSH للاتصال بالخادم
+5. **Qualité de Code**
+   - Analyse statique avec flake8, pylint, black et isort
+   - Formatage automatique du code Flutter
+   - Vérification de la couverture de code
 
-### For Android App Deployment / لنشر التطبيق على Android:
-- `PLAY_STORE_JSON_KEY`: JSON key for Google Play Store account / مفتاح JSON لحساب Google Play Store
+## Secrets Requis
 
-### For iOS App Deployment / لنشر التطبيق على iOS:
-- `PROVISIONING_PROFILE`: App signing profile (base64 encoded) / ملف التوقيع للتطبيق (مشفر بـ base64)
-- `CERTIFICATE_P12`: Signing certificate (base64 encoded) / شهادة التوقيع (مشفرة بـ base64)
-- `CERTIFICATE_PASSWORD`: Signing certificate password / كلمة المرور لشهادة التوقيع
-- `APPSTORE_API_KEY_JSON`: API key for App Store Connect / مفتاح API لـ App Store Connect
+Les secrets suivants doivent être ajoutés aux Secrets du Dépôt GitHub :
 
-## How to Use / كيفية الاستخدام
+### Pour le Backend :
+- `DOCKER_HUB_USERNAME` : Nom d'utilisateur Docker Hub
+- `DOCKER_HUB_ACCESS_TOKEN` : Token d'accès Docker Hub
+- `SERVER_HOST` : Adresse du serveur pour le déploiement
+- `SERVER_USERNAME` : Nom d'utilisateur du serveur
+- `SERVER_SSH_KEY` : Clé SSH pour la connexion au serveur
+- `SENTRY_DSN` : DSN Sentry pour la surveillance des erreurs
+- `DATABASE_URL` : URL de connexion à la base de données de production
 
-### Automatic Testing and Building / الاختبار والبناء التلقائي
+### Pour le Déploiement Android :
+- `PLAY_STORE_JSON_KEY` : Clé JSON pour le compte Google Play Store
+- `KEYSTORE_BASE64` : Keystore Android encodé en base64
+- `KEYSTORE_PASSWORD` : Mot de passe du keystore
+- `KEY_ALIAS` : Alias de la clé
+- `KEY_PASSWORD` : Mot de passe de la clé
 
-Testing and building pipelines run automatically when:
-- Changes are pushed to main branches (main, master, develop)
-- Pull requests are created to these branches
+### Pour le Déploiement iOS :
+- `PROVISIONING_PROFILE` : Profil de provisionnement (encodé en base64)
+- `CERTIFICATE_P12` : Certificat de signature (encodé en base64)
+- `CERTIFICATE_PASSWORD` : Mot de passe du certificat
+- `APPSTORE_API_KEY_JSON` : Clé API pour App Store Connect
+- `APPLE_TEAM_ID` : ID de l'équipe Apple Developer
 
-يتم تشغيل خطوط الاختبار والبناء تلقائيًا عند:
-- دفع التغييرات إلى الفروع الرئيسية (main, master, develop)
-- إنشاء طلب سحب (pull request) إلى هذه الفروع
+## Comment Utiliser
 
-### Security Report Review / مراجعة تقارير الأمان
+### Tests et Construction Automatiques
 
-To review security reports:
-1. Go to the "Actions" tab in GitHub / انتقل إلى تبويب "Actions" في GitHub
-2. Select the most recent workflow run / اختر أحدث تشغيل لسير العمل
-3. Download artifacts from the "Artifacts" section / قم بتنزيل المخرجات من قسم "Artifacts"
-4. Review the HTML reports for security issues / راجع تقارير HTML للمشاكل الأمنية
+Les pipelines de test et de construction s'exécutent automatiquement lorsque :
+- Des modifications sont poussées vers les branches principales (main, master, develop)
+- Des pull requests sont créées vers ces branches
+- Manuellement via l'option "workflow_dispatch" dans GitHub Actions
 
-### Performance Testing / اختبارات الأداء
+### Révision des Rapports de Sécurité
 
-Performance reports are generated automatically and uploaded as artifacts. Review them to:
-- Identify API bottlenecks / تحديد نقاط الاختناق في واجهة API
-- Monitor response times / مراقبة أوقات الاستجابة
-- Plan optimizations / تخطيط التحسينات
+Pour consulter les rapports de sécurité :
+1. Allez dans l'onglet "Actions" sur GitHub
+2. Sélectionnez l'exécution de workflow la plus récente
+3. Téléchargez les artefacts depuis la section "Artifacts"
+4. Examinez les rapports HTML pour les problèmes de sécurité
+5. Priorisez les vulnérabilités critiques et élevées
 
-يتم إنشاء تقارير الأداء تلقائيًا وتحميلها كمخرجات. راجعها من أجل:
-- تحديد نقاط الاختناق في واجهة API
-- مراقبة أوقات الاستجابة
-- تخطيط التحسينات
+### Tests de Performance
 
-### Mobile App Deployment / نشر التطبيق المحمول
+Les rapports de performance sont générés automatiquement et téléchargés en tant qu'artefacts. Examinez-les pour :
+- Identifier les goulots d'étranglement de l'API
+- Surveiller les temps de réponse
+- Planifier les optimisations
+- Évaluer l'impact des nouvelles fonctionnalités
 
-To deploy the app to app stores with phased rollout:
+### Déploiement de l'Application Mobile
 
-لنشر التطبيق على متاجر التطبيقات مع النشر التدريجي:
+Pour déployer l'application sur les stores avec un déploiement progressif :
 
-1. Go to the "Actions" tab in GitHub / انتقل إلى تبويب "Actions" في GitHub
-2. Select "Mobile Deployment" / اختر "Mobile Deployment"
-3. Click "Run workflow" / انقر على "Run workflow"
-4. Enter:
-   - App version (e.g., 1.0.0) / إصدار التطبيق (مثل: 1.0.0)
-   - Release notes / ملاحظات الإصدار
-   - Rollout percentage (default 10%) / نسبة النشر التدريجي (الافتراضي 10%)
+1. Allez dans l'onglet "Actions" sur GitHub
+2. Sélectionnez "Mobile Deployment"
+3. Cliquez sur "Run workflow"
+4. Entrez :
+   - Version de l'application (ex. 1.0.0)
+   - Notes de version
+   - Pourcentage de déploiement (par défaut 10%)
+   - Canaux de déploiement (production, beta, alpha)
 
-## Setting Up Integration Tests / إعداد اختبارات التكامل
+## Configuration des Tests d'Intégration
 
-### For Flutter / لـ Flutter:
-1. Create an `integration_test` directory in the project / قم بإنشاء مجلد `integration_test` في المشروع
-2. Add integration test files / أضف ملفات اختبار التكامل
-3. Tests will automatically run before deployment / سيتم تشغيل الاختبارات تلقائيًا قبل النشر
+### Pour Flutter :
+1. Créez un répertoire `integration_test` dans le projet
+2. Ajoutez des fichiers de test d'intégration
+3. Les tests s'exécuteront automatiquement avant le déploiement
+4. Utilisez les mocks pour simuler les réponses API
 
-### For Backend / للواجهة الخلفية:
-1. Create performance test scenarios in `locustfile.py` / قم بإنشاء سيناريوهات اختبار الأداء في `locustfile.py`
-2. Add more test endpoints as needed / أضف نقاط نهاية اختبار إضافية حسب الحاجة
+### Pour le Backend :
+1. Créez des scénarios de test de performance dans `locustfile.py`
+2. Ajoutez des points de terminaison de test supplémentaires selon les besoins
+3. Utilisez des fixtures pour préparer les données de test
+4. Configurez les tests pour utiliser une base de données dédiée
 
-## Tips and Guidelines / نصائح وإرشادات
+## Conseils et Directives
 
-### For Frontend Tests / لاختبارات الواجهة الأمامية:
-- Define tests in the `test/` folder within the Flutter project / تأكد من تعريف الاختبارات في مجلد `test/` داخل مشروع Flutter
-- Consider using Test-Driven Development (TDD) / ضع في اعتبارك استخدام نهج التطوير المدفوع بالاختبار (TDD)
-- For UI tests, use the `integration_test` folder / لاختبارات واجهة المستخدم، استخدم مجلد `integration_test`
+### Pour les Tests Frontend :
+- Définissez les tests dans le dossier `test/` du projet Flutter
+- Envisagez d'utiliser le développement piloté par les tests (TDD)
+- Pour les tests d'interface utilisateur, utilisez le dossier `integration_test`
+- Testez sur différentes tailles d'écran et orientations
 
-### For Backend Tests / لاختبارات الواجهة الخلفية:
-- Define tests in `tests.py` files within Django apps / تأكد من تعريف الاختبارات في ملفات `tests.py` داخل تطبيقات Django
-- Use an independent test database / استخدم قاعدة بيانات اختبار مستقلة
-- Monitor code coverage reports / راقب تقارير تغطية الكود
+### Pour les Tests Backend :
+- Définissez les tests dans les fichiers `tests.py` des applications Django
+- Utilisez une base de données de test indépendante
+- Surveillez les rapports de couverture de code
+- Testez les cas limites et les scénarios d'erreur
 
-### For Deployment / للنشر:
-- Always check deployment settings in `Fastfile` for both Android and iOS / تحقق دائمًا من إعدادات النشر في ملفات `Fastfile` لكل من Android و iOS
-- Thoroughly test the app before actual deployment / تأكد من اختبار التطبيق جيدًا قبل النشر الفعلي
-- Use phased rollouts to minimize risk / استخدم النشر التدريجي لتقليل المخاطر
+### Pour le Déploiement :
+- Vérifiez toujours les paramètres de déploiement dans `Fastfile` pour Android et iOS
+- Testez minutieusement l'application avant le déploiement réel
+- Utilisez des déploiements progressifs pour minimiser les risques
+- Préparez des scénarios de rollback en cas de problème
 
-## Troubleshooting / استكشاف الأخطاء وإصلاحها
+## Dépannage
 
-If the CI/CD process fails, check:
-1. Error logs in the Actions tab / سجلات الأخطاء في تبويب Actions
-2. Validity of secrets and keys / صلاحية الأسرار والمفاتيح
-3. File and path configuration in YAML files / تكوين الملفات والمسارات في ملفات YAML
-4. Order of execution steps in pipelines / ترتيب تنفيذ الخطوات في خطوط الأنابيب
-5. Downloaded artifacts for more detailed logs / قم بتنزيل المخرجات للحصول على سجلات أكثر تفصيلاً
+Si le processus CI/CD échoue, vérifiez :
+1. Les journaux d'erreurs dans l'onglet Actions
+2. La validité des secrets et des clés
+3. La configuration des fichiers et des chemins dans les fichiers YAML
+4. L'ordre des étapes d'exécution dans les pipelines
+5. Téléchargez les artefacts pour des journaux plus détaillés
+6. Vérifiez les versions des dépendances dans requirements.txt et pubspec.yaml
 
-## Security Best Practices / أفضل ممارسات الأمان
+## Bonnes Pratiques de Sécurité
 
-1. Never commit sensitive data directly to the repository / لا تقم أبدًا بإرسال البيانات الحساسة مباشرة إلى المستودع
-2. Rotate secrets periodically / قم بتغيير الأسرار بشكل دوري
-3. Use limited-scope access tokens / استخدم رموز وصول محدودة النطاق
-4. Review workflow permissions in GitHub / راجع أذونات سير العمل في GitHub
-5. Review security scan reports regularly / راجع تقارير فحص الأمان بانتظام
+1. Ne jamais commit directement des données sensibles dans le dépôt
+2. Faire tourner les secrets périodiquement
+3. Utiliser des tokens d'accès à portée limitée
+4. Examiner les permissions de workflow dans GitHub
+5. Examiner régulièrement les rapports d'analyse de sécurité
+6. Maintenir les dépendances à jour pour éviter les vulnérabilités connues
+7. Utiliser des images Docker officielles et à jour
 
-## Continuous Improvement / التحسين المستمر
+## Amélioration Continue
 
-Our CI/CD pipeline includes:
-1. Security scanning for vulnerabilities / فحص الأمان للثغرات
-2. Performance testing in the pipeline / اختبار الأداء في خط الأنابيب
-3. Automated UI testing / اختبار واجهة المستخدم الآلي
-4. Phased rollout deployment / نشر تدريجي للتطبيق
+Notre pipeline CI/CD comprend :
+1. Analyse de sécurité pour les vulnérabilités
+2. Tests de performance dans le pipeline
+3. Tests automatisés de l'interface utilisateur
+4. Déploiement progressif
+5. Génération automatique des fichiers de traduction
 
-Future enhancements to consider:
-1. A/B testing integration / دمج اختبارات A/B
-2. Automated visual regression testing / اختبار تراجع بصري آلي
-3. Expanded integration test coverage / توسيع تغطية اختبار التكامل 
+Améliorations futures à envisager :
+1. Intégration de tests A/B
+2. Tests automatisés de régression visuelle
+3. Couverture étendue des tests d'intégration
+4. Analyse de la qualité du code avec SonarQube
+5. Déploiement blue/green pour le backend
+6. Surveillance automatisée post-déploiement
+
+## Contact et Support
+
+Pour toute question concernant le pipeline CI/CD ou pour signaler des problèmes :
+- Email : sidahmedmhd08@gmail.com
+- GitHub Issues : Créez une issue avec le tag "CI/CD" 

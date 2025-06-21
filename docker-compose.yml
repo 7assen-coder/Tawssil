@@ -1,8 +1,9 @@
 version: '3.8'
 
 services:
+  # Base de données PostgreSQL
   db:
-    image: postgres:13
+    image: postgres:15
     container_name: tawssil_postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -10,12 +11,43 @@ services:
       - POSTGRES_USER=tawssil_user
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=tawssil_db
+    ports:
+      - "5432:5432"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tawssil_user -d tawssil_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - tawssil_network
 
+  # Cache Redis pour améliorer les performances
+  redis:
+    image: redis:7
+    container_name: tawssil_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tawssil_network
+
+  # Backend Django
   web:
-    build: .
+    build:
+      context: .
+      dockerfile: dockerfile
     container_name: tawssil_backend
-    command: gunicorn tawssil_backend.wsgi:application --bind 0.0.0.0:8000
+    command: gunicorn tawssil_backend.wsgi:application --bind 0.0.0.0:8000 --workers 4 --threads 2 --timeout 60
     volumes:
       - static_volume:/app/tawssil_backend/static
       - media_volume:/app/tawssil_backend/media
@@ -24,8 +56,11 @@ services:
       - 8000
     depends_on:
       - db
+      - redis
     env_file:
       - ./.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     restart: always
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
@@ -33,13 +68,16 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    networks:
+      - tawssil_network
 
+  # Serveur web Nginx pour servir les fichiers statiques et faire le proxy
   nginx:
-    image: nginx:1.21
+    image: nginx:1.25
     container_name: tawssil_nginx
     ports:
-      - 80:80
-      - 443:443
+      - "80:80"
+      - "443:443"
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
@@ -48,8 +86,62 @@ services:
     depends_on:
       - web
     restart: always
+    networks:
+      - tawssil_network
+
+  # Serveur de documentation Swagger UI
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    container_name: tawssil_swagger
+    ports:
+      - "8080:8080"
+    environment:
+      - API_URL=http://localhost/api/schema/
+    depends_on:
+      - web
+    restart: always
+    networks:
+      - tawssil_network
+
+  # Outil de surveillance et d'alerte
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: tawssil_prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    restart: always
+    networks:
+      - tawssil_network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: tawssil_grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    restart: always
+    networks:
+      - tawssil_network
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  tawssil_network:
+    driver: bridge

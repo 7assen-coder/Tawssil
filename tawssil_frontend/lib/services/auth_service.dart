@@ -665,7 +665,7 @@ class AuthService {
       // إرسال طلب تحديث الحالة
       final response = await http
           .patch(
-        Uri.parse('$baseUrl/api/users/$driverId/update/'),
+        Uri.parse('$baseUrl/api/drivers/$driverId/update-status/'),
         headers: {
           'Content-Type': 'application/json',
         },
